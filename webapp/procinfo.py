@@ -93,7 +93,7 @@ class CpuMeter:
         self.last = {}
 
     def sample(self, pid):
-        """{"ramMo", "cpu"} of `pid`, or None if it is not running. cpu is None on the first reading."""
+        """{"ramMo", "cpu", "uptimeSeconds"} of `pid`, or None if it is not running. cpu is None on the first reading."""
         handle = _open(pid)
         if not handle:
             return None
@@ -114,7 +114,10 @@ class CpuMeter:
         if before and now > before[0]:
             cpu = round(max(0.0, (busy - before[1]) / (now - before[0]) * 100), 1)
         self.last[pid] = (now, busy)
-        return {"ramMo": int(counters.WorkingSetSize // (1024 * 1024)), "cpu": cpu}
+        # FILETIME counts 100 ns intervals since 1601, before the Unix epoch.
+        created = (times[0].dwHighDateTime << 32 | times[0].dwLowDateTime) / 1e7 - 11644473600
+        return {"ramMo": int(counters.WorkingSetSize // (1024 * 1024)), "cpu": cpu,
+                "uptimeSeconds": max(0, int(now - created))}
 
 
 def cores():

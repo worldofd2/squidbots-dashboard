@@ -204,29 +204,7 @@ class Monitor:
 
         sample = self.auth_cpu.sample(pid)
         if sample:
-            state["ramMo"] = sample["ramMo"]
-            state["cpu"] = sample["cpu"]
-
-        # Process uptime through Linux /proc.
-        # On Windows, omit uptime until a native implementation is added.
-        if os.name == "posix" and os.path.exists("/proc/uptime"):
-            try:
-                with open(f"/proc/{pid}/stat", encoding="utf-8") as f:
-                    stat = f.read()
-
-                fields = stat[stat.rfind(")") + 2:].split()
-                start_ticks = int(fields[19])
-
-                with open("/proc/uptime", encoding="utf-8") as f:
-                    system_uptime = float(f.read().split()[0])
-
-                elapsed = system_uptime - (
-                    start_ticks / os.sysconf("SC_CLK_TCK")
-                )
-                state["uptimeSeconds"] = max(0, int(elapsed))
-
-            except (OSError, ValueError, IndexError):
-                pass
+            state.update(sample)
 
         return state
 
@@ -254,11 +232,11 @@ class Monitor:
         listening = port_open(realm.world_port) if realm.world_port else None
         running = bool(pid) if listening is None else listening
         state = {"running": running, "starting": bool(pid) and listening is False, "pid": pid or None,
-                 "ramMo": None, "cpu": None, "disabled": realm.disabled, "at": round(time.time())}
+                 "ramMo": None, "cpu": None, "uptimeSeconds": None, "disabled": realm.disabled, "at": round(time.time())}
         if pid:
             sample = self.cpu.sample(pid)
             if sample:
-                state["ramMo"], state["cpu"] = sample["ramMo"], sample["cpu"]
+                state.update(sample)
         if running and with_ra and self.use_ra:
             try:
                 state.update(ra.parse_info(ra.command(self.root, self._ra_port(realm), "server info", timeout=6)))

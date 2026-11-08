@@ -104,9 +104,17 @@ class CpuMeter:
 
         self.last[pid] = (now, ticks, started)
 
+        uptime = None
+        try:
+            with open("/proc/uptime", encoding="utf-8") as f:
+                uptime = max(0, int(float(f.read().split()[0]) - started / self.clock_ticks))
+        except (OSError, ValueError, IndexError):
+            pass
+
         return {
             "ramMo": ram,
-            "cpu": cpu
+            "cpu": cpu,
+            "uptimeSeconds": uptime
         }
 
 

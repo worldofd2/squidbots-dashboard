@@ -1611,13 +1611,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/realms":
             self._json(realms_overview())
         elif path == "/api/perf":
+            crashes = server_state(ctx)
             self._json(dict(
                 MONITOR.series(
                     ctx.realm.key,
                     "week" if first("span") == "week" else "day"
                 ),
                 realm=ctx.realm.public(),
-                crashes=server_state(ctx),
+                crashes=crashes,
                 cores=procinfo.cores(),
                 auth=MONITOR.auth_state() if ctx.realm.key == "coa" else None
             ))
