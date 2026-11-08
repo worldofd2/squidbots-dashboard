@@ -124,6 +124,7 @@ async function getJson(url) {
 
 /* ------------------------------------------------------------- server health ---- */
 let PERF = null, PERF_SPAN = "day", perfTimer = null;
+let serviceBusy = false, serviceMessage = "";
 
 async function loadPerf() {
   PERF = await getJson("/api/perf?span=" + PERF_SPAN).catch(error => ({ error: String(error) }));
@@ -162,6 +163,13 @@ function processUptime(seconds) {
 
 function processCard(name, state, running) {
   if (!state) return "";
+  const service = name.toLowerCase();
+  const controls = PERF.serviceControls?.includes(service) ? `
+    <div class="tabs">
+      ${["Start", "Stop", "Restart"].map(action =>
+        `<button type="button" data-service="${service}" data-service-action="${action.toLowerCase()}"
+                 ${serviceBusy ? "disabled" : ""}>${action}</button>`).join("")}
+    </div>` : "";
   return `
     <section class="card">
       <h2>
@@ -188,6 +196,7 @@ function processCard(name, state, running) {
           <div class="value num">${processUptime(state.uptimeSeconds)}</div>
         </div>
       </div>
+      ${controls}
     </section>
   `;
 }
@@ -218,6 +227,7 @@ function renderPerf() {
     '<li class="event ' + esc(e.kind) + '"><span class="when num">' + esc(when(e.ts)) + "</span>" +
     esc(words.srvEventKinds[e.kind] || e.kind) + (e.text ? ' <span class="meta">' + esc(e.text) + "</span>" : "") + "</li>").join("");
   host.innerHTML = banner +
+    (PERF.serviceControls?.length ? '<div role="status">' + esc(serviceMessage) + '</div>' : "") +
     '<section class="card server-head mode-' + esc((PERF.realm || {}).mode || REALM) + '"><span class="gem big" aria-hidden="true"></span>' +
       "<div><h2>" + esc((PERF.realm || {}).name || "") + ' <span class="state-badge ' + status + '">' + esc(W.realmState[status]) + "</span></h2>" +
       '<div class="meta">' + (state.uptime ? esc(words.srvUptime + " " + state.uptime) + " · " : "") +
@@ -242,6 +252,30 @@ function renderPerf() {
     lineChart(target, shown, { value: p => p.v, label: title, unit: "", color: color });
   }
 }
+
+document.addEventListener("click", async event => {
+  const button = event.target.closest("#serverPage button[data-service-action]");
+  if (!button || serviceBusy) return;
+  const { service, serviceAction: action } = button.dataset;
+  if (action !== "start" && !window.confirm(`Do you want to ${action} ${service}? This can interrupt players.`)) return;
+  serviceBusy = true;
+  serviceMessage = `Running ${action} for ${service}…`;
+  renderPerf();
+  try {
+    const response = await fetch("/api/service", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service, action })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    serviceMessage = `systemd completed ${action} for ${service}. Process metrics update on the next sample.`;
+  } catch (error) {
+    serviceMessage = `${service} ${action} failed. ${error.message}`;
+  } finally {
+    serviceBusy = false;
+    await loadPerf();
+  }
+});
 
 document.addEventListener("click", event => {
   const span = event.target.closest("#perfSpan button[data-span]");

@@ -1109,6 +1109,17 @@ GM = gm.Gm(ROOT, mysql, os.path.join(HERE, "data", "gm-actions.jsonl"))
 # The server's settings belong to the launcher, which builds every .conf file again at each start: the dashboard
 # only reads them, unless dashboard.json asks for its own Settings page (a server run without the launcher).
 CONFIG_EDIT = SETTINGS.get("settingsPage") is True
+# Service controls are opt-in and apply only to the main CoA installation.
+SERVICE_ACTIONS = ("start", "stop", "restart")
+SERVICE_UNITS = {}
+configured_units = SETTINGS.get("systemdServices")
+if sys.platform.startswith("linux") and isinstance(configured_units, dict):
+    for service in ("worldserver", "authserver"):
+        unit = configured_units.get(service)
+        if isinstance(unit, str) and re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.@-]*\.service", unit):
+            SERVICE_UNITS[service] = unit
+SERVICE_LOCK = threading.Lock()
+
 GM_ENABLED = SETTINGS.get("gmTools", True) is not False and SETTINGS.get("console", True) is not False
 
 
@@ -1619,6 +1630,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 ),
                 realm=ctx.realm.public(),
                 crashes=crashes,
+                serviceControls=list(SERVICE_UNITS) if ctx.realm.key == "coa" else [],
                 cores=procinfo.cores(),
                 auth=MONITOR.auth_state() if ctx.realm.key == "coa" else None
             ))
@@ -1709,11 +1721,49 @@ class Handler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+    def _service_action(self, ctx):
+        if not self._local_only():
+            return
+        if ctx.realm.key != "coa" or not SERVICE_UNITS:
+            self._json({"error": "Service controls are unavailable for this realm."}, 403)
+            return
+        try:
+            body = self._body()
+        except ValueError:
+            self._json({"error": "expected a JSON object"}, 400)
+            return
+        service, action = body.get("service"), body.get("action")
+        unit = SERVICE_UNITS.get(service) if isinstance(service, str) else None
+        if not unit or action not in SERVICE_ACTIONS:
+            self._json({"error": "Unknown service or action."}, 400)
+            return
+        if not SERVICE_LOCK.acquire(blocking=False):
+            self._json({"error": "A service action is already in progress."}, 409)
+            return
+        try:
+            result = subprocess.run(
+                ["/usr/bin/systemctl", "--no-ask-password", "--job-mode=fail", action, unit],
+                stdin=subprocess.DEVNULL, capture_output=True, text=True, errors="replace", timeout=120,
+            )
+            if result.returncode:
+                self._json({"error": result.stderr.strip()[-1000:] or "systemctl failed."}, 502)
+            else:
+                self._json({"ok": True})
+        except subprocess.TimeoutExpired:
+            self._json({"error": "Timed out waiting for systemd. Check the service status before retrying."}, 504)
+        except OSError as error:
+            self._json({"error": str(error)}, 502)
+        finally:
+            SERVICE_LOCK.release()
+
     def do_POST(self):
         if not self._own_host():
             return
         path = self.path.split("?")[0]
         ctx = self._realm()
+        if path == "/api/service":
+            self._service_action(ctx)
+            return
         if path == "/api/pvpsetup":
             # Keeping the battlegrounds played is for this dashboard alone: nothing else sets it, and the launcher does
             # not manage it. Written where every realm's next start takes it from (the CoA realm's template and file).

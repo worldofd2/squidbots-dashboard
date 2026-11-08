@@ -170,6 +170,24 @@ The PvP page's battlegrounds need `Battleground.StoreStatistics.Enable = 1`.
 The Chat & Loot and PvP pages offer a **Turn the journals on** button when these lines are missing:
 it sets the required ones in place, after a backup of `worldserver.conf`.
 
+## Ubuntu service controls
+
+If your CoA Worldserver and Authserver already run as system-level systemd units, add their exact
+unit names to the existing `dashboard.json` and restart the dashboard. For example:
+
+```json
+"systemdServices": {
+  "worldserver": "worldserver.service",
+  "authserver": "authserver.service"
+}
+```
+
+Each configured unit gets Start, Stop, and Restart buttons on the main CoA realm's Server page.
+Omit a unit to hide its controls. The dashboard account needs authorization to start, stop, and
+restart only those units through systemd (for example, a unit-specific polkit rule). The dashboard
+does not prompt for credentials. Keep the dashboard on its existing local interface and run it
+as an unprivileged account.
+
 ## The Settings page
 
 Only for a server run without the SquidBots launcher, with `"settingsPage": true` in `dashboard.json`: the launcher
