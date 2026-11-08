@@ -67,7 +67,7 @@ function vivantFigures(tiles) {
 }
 
 const qualityName = (name, quality) => '<span style="color:' + (QUALITY_COLORS[quality] || "#eee") + '">[' + esc(name) + "]</span>";
-const duration = s => Math.floor(s / 60) + " min " + String(Math.round(s % 60)).padStart(2, "0");
+const duration = s => Math.floor(s / 60) + ":" + String(Math.round(s % 60)).padStart(2, "0");
 
 function renderVivant() {
   const host = document.getElementById("vivantPage");
@@ -160,10 +160,10 @@ function vivantGroups(body, w) {
   body.innerHTML = topicError(d) + vivantFigures([[w.runsToday, num(t.runs), ""], [w.cleared, num(t.cleared), Math.round(t.cleared / Math.max(1, t.runs) * 100) + " %"],
     [w.wipes, num(t.wipes), ""], [w.bossKills, num(t.bossKills), ""], [w.running, num((d.running || []).length), ""], [w.busy, num((d.running || []).reduce((s, r) => s + r.bots, 0)), "bots"]]) +
     '<section class="card"><h2>' + esc(w.running) + "</h2>" + (running || '<p class="empty">' + esc(w.noRun) + "</p>") + "</section>" +
-    '<div class="grid two"><section class="card"><h2>' + esc(w.perDungeon) + '</h2><div class="scroll"><table><thead><tr><th>' + esc(w.dungeon) + '</th><th class="r">' +
+    '<section class="card"><h2>' + esc(w.perDungeon) + '</h2><div class="scroll"><table><thead><tr><th>' + esc(w.dungeon) + '</th><th class="r">' +
       esc(w.runs) + '</th><th class="r">' + esc(w.cleared) + '</th><th class="r">' + esc(w.wipes) + '</th><th class="r">' + esc(w.median) + '</th><th class="r">' +
       esc(w.best) + "</th></tr></thead><tbody>" + dungeons + "</tbody></table></div></section>" +
-    '<section class="card"><h2>' + esc(w.lastRuns) + '</h2><div class="scroll"><table><tbody>' + last + "</tbody></table></div></section></div>";
+    '<section class="card"><h2>' + esc(w.lastRuns) + '</h2><div class="scroll"><table><tbody>' + last + "</tbody></table></div></section>";
 }
 
 function vivantHealth(body, w) {

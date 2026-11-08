@@ -1,6 +1,6 @@
 # Liaison SquidBot 3.0 → SquidBots Dashboard (proposition CoA Dashboard, 08/11)
 
-Réponse à VISION-3.0 §4 bis. Format validé par le Pilote le 08/11. Le côté module sera codé par **CoA SquidBot** (D:\CoA-SquidBot) après le lot L1 : c'est elle l'interlocutrice côté module. Le Builder garde les bancs et les builds.
+Réponse à VISION-3.0 §4 bis. Format validé par le Pilote le 08/11. Le côté module est réparti entre trois sessions, à contacter chacune pour sa partie une fois démarrée : **CoA SquidBot** (D:\CoA-SquidBot, après L1) pour `world.json` (population, âmes, surnoms), **CoA Monde** pour `events.jsonl` et **CoA Economie** pour `economy.json`. Les runs (`groups.json`, `runs.jsonl`) viennent de **CoA Dungeon Clear**. Le Builder garde les bancs et les builds.
 
 **Statut (08/11)** : principe accepté par le Builder, avec les modifications du §6 (elles priment sur le reste du document). Il lancera le module après le banc CPU A/B (chantier 0), sur l'ordre du Pilote. Non surveillé, le module doit rester dans le bruit de mesure. Les champs de `groups.json` et `runs.jsonl` restent à arrêter avec CoA Dungeon Clear.
 
