@@ -67,7 +67,7 @@ import sys
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import botconfig
-from webapp import gm, market, monitor, procinfo, realms
+from webapp import gm, market, monitor, procinfo, realms, vivant
 
 
 def find_config_dir():
@@ -1068,6 +1068,7 @@ class Context:
         self.stats = Stats(self)
         self.pvp = Pvp(self)
         self.market = market.Market(mysql, self)
+        self.vivant = vivant.Vivant(self)
         self._armory = None
         self.armory_error = None
 
@@ -1219,8 +1220,8 @@ def public_copy(data):
 PRIVATE_JS = re.compile(r"/\* private:start \*/.*?/\* private:end \*/", re.S)
 PRIVATE_HTML = re.compile(r"<!-- private:start -->.*?<!-- private:end -->", re.S)
 # Nothing of the kind may survive into a public file; publishing stops if one does.
-PRIVATE_LEFT = re.compile(r"/api/|private:(?:start|end)|server\.js|"
-                          r"id=\"(?:settings|feedCard|artPrompt|artPanel|serverPage|marketPage|gmPage)\"")
+PRIVATE_LEFT = re.compile(r"/api/|private:(?:start|end)|server\.js|vivant\.js|"
+                          r"id=\"(?:settings|feedCard|artPrompt|artPanel|serverPage|vivantPage|marketPage|gmPage)\"")
 
 
 def public_files():
@@ -1615,6 +1616,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                             realm=ctx.realm.public(), crashes=server_state(ctx), cores=procinfo.cores()))
         elif path == "/api/market":
             self._json(ctx.market.get())
+        elif path == "/api/vivant":
+            self._json(ctx.vivant.get())
         elif path == "/api/gm":
             if not GM_ENABLED:
                 self._json({"error": "The GM tools are turned off in dashboard.json (gmTools)."}, 403)

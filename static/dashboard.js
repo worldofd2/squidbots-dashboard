@@ -80,8 +80,8 @@ const WORDS = {
     searchBot: "Search a bot", otherLang: "FR",
     navWorld: "World", navBots: "Bots", navStats: "Stats",
     navChat: "Chat & Loot", navSettings: "Settings", navArmory: "Armory",
-    navRealms: "Realms", navServer: "Server", navMarket: "Auction house", navGm: "Game master",
-    pageTitles: { world: "World", bots: "Bots", stats: "Stats", realms: "Realms", server: "Server health",
+    navRealms: "Realms", navServer: "Server", navMarket: "Auction house", navVivant: "Living world", navGm: "Game master",
+    pageTitles: { world: "World", bots: "Bots", stats: "Stats", realms: "Realms", server: "Server health", vivant: "Living world",
       market: "Auction house", gm: "Game master tools",
       chat: "Chat & Loot", pvp: "PvP", settings: "Settings", armory: "Armory" },
     realmModes: { coa: "Conquest of Azeroth", wildcard: "Wildcard", reborn: "Warcraft Reborn", dawnrise: "Dawnrise" },
@@ -205,8 +205,8 @@ const WORDS = {
     searchBot: "Chercher un bot", otherLang: "EN",
     navWorld: "Monde", navBots: "Bots", navStats: "Statistiques",
     navChat: "Chat et butin", navSettings: "Réglages", navArmory: "Armurerie",
-    navRealms: "Royaumes", navServer: "Serveur", navMarket: "Hôtel des ventes", navGm: "Maître de jeu",
-    pageTitles: { world: "Monde", bots: "Bots", stats: "Statistiques", realms: "Royaumes", server: "Santé du serveur",
+    navRealms: "Royaumes", navServer: "Serveur", navMarket: "Hôtel des ventes", navVivant: "Monde vivant", navGm: "Maître de jeu",
+    pageTitles: { world: "Monde", bots: "Bots", stats: "Statistiques", realms: "Royaumes", server: "Santé du serveur", vivant: "Monde vivant",
       market: "Hôtel des ventes", gm: "Outils de maître de jeu",
       chat: "Chat et butin", pvp: "JcJ", settings: "Réglages", armory: "Armurerie" },
     realmModes: { coa: "Conquest of Azeroth", wildcard: "Wildcard", reborn: "Warcraft Reborn", dawnrise: "Dawnrise" },
@@ -346,6 +346,7 @@ const NAV_ICONS = {
   "pvp": "<path d=\"m4 4 9 9M4 4h4l9 9M4 4v4l9 9M14 17l3 3M17 14l3 3M15 19l4-4\"/>",
   "server": "<path d=\"M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10Z\"/>",
   "market": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M12 7v10M9.5 9.5c0-1 1-1.5 2.5-1.5s2.5.7 2.5 1.7c0 2.4-5 1.4-5 4 0 1 1 1.8 2.5 1.8s2.5-.6 2.5-1.6\"/>",
+  "vivant": "<circle cx=\"12\" cy=\"12\" r=\"8\"/><path d=\"M4 12h16M12 4c2.5 2.5 2.5 13.5 0 16M12 4c-2.5 2.5-2.5 13.5 0 16\"/>",
   "gm": "<path d=\"M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6Z\"/><path d=\"m9 12 2 2 4-4\"/>",
   "armory": "<circle cx=\"12\" cy=\"8\" r=\"4\"/><path d=\"M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6\"/>",
   "settings": "<path d=\"M18.88 9.87L21.41 10.09L21.41 13.91L18.88 14.13L18.37 15.36L18.37 15.36L20.00 17.30L17.30 20.00L15.36 18.37L14.13 18.88L14.13 18.88L13.91 21.41L10.09 21.41L9.87 18.88L8.64 18.37L8.64 18.37L6.70 20.00L4.00 17.30L5.63 15.36L5.12 14.13L5.12 14.13L2.59 13.91L2.59 10.09L5.12 9.87L5.63 8.64L5.63 8.64L4.00 6.70L6.70 4.00L8.64 5.63L9.87 5.12L9.87 5.12L10.09 2.59L13.91 2.59L14.13 5.12L15.36 5.63L15.36 5.63L17.30 4.00L20.00 6.70L18.37 8.64L18.88 9.87Z\"/><circle cx=\"12\" cy=\"12\" r=\"3.2\"/>"
@@ -357,8 +358,8 @@ for (const node of document.querySelectorAll(".ico[data-icon]")) {
 
 /* ---------------- pages ---------------- */
 // The public copy is read-only: no settings, and no armory (it asks the game database, see static/armory.js).
-const PRIVATE_PAGES = ["settings", "armory", "server", "market", "gm"];
-const PAGES = ["realms", "world", "bots", "stats", "chat", "pvp", "server", "market", "gm", "settings", "armory"]
+const PRIVATE_PAGES = ["settings", "armory", "server", "vivant", "market", "gm"];
+const PAGES = ["realms", "world", "bots", "stats", "chat", "pvp", "server", "vivant", "market", "gm", "settings", "armory"]
   .filter(page => !PUBLIC || !PRIVATE_PAGES.includes(page));
 if (PUBLIC) {
   for (const page of PRIVATE_PAGES) {
@@ -387,7 +388,8 @@ function showPage() {
   /* private:start */if (PAGE === "chat") { loadFeed(); renderBotLang(); renderLogSetup("logSetupChat"); }
   if (PAGE === "pvp") { renderLogSetup("logSetupPvp"); renderArenaBots(); renderPvpSetup(); }
   if (PAGE === "armory" && typeof renderArmory === "function") renderArmory();
-  if (typeof showServerPage === "function") showServerPage(PAGE);/* private:end */
+  if (typeof showServerPage === "function") showServerPage(PAGE);
+  if (typeof showVivantPage === "function") showVivantPage(PAGE);/* private:end */
 }
 window.addEventListener("hashchange", showPage);
 
