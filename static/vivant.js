@@ -10,7 +10,7 @@ const VIVANT_WORDS = {
     demo: t => "Made-up figures for " + t + ": the server does not write these files yet (CoA Bots 3.0).",
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
-    zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)",
+    zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)", soulsOff: "Souls are off on this realm (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["None", "“Bot”", "From the list"], surnameHelp: ["Bots show their first name only.", "Every bot is named “First Bot” (as in 2.x).", n => "A family name per bot, drawn once from a list of " + n + "."],
     mostWorn: "Most worn",
     act: { quest: "Questing", grind: "Grinding", city: "In town", travel: "Travelling", fish: "Fishing", pvp: "PvP", dungeon: "Dungeon", idle: "Idle" },
@@ -35,7 +35,7 @@ const VIVANT_WORDS = {
     demo: t => "Données factices pour " + t + " : le serveur n'écrit pas encore ces fichiers (CoA Bots 3.0).",
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
-    zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)",
+    zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)", soulsOff: "Les âmes sont coupées sur ce royaume (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["Aucun", "« Bot »", "Liste"], surnameHelp: ["Les bots ne montrent que leur prénom.", "Chaque bot s'appelle « Prénom Bot » (comme en 2.x).", n => "Un nom de famille par bot, tiré une fois pour toutes d'une liste de " + n + "."],
     mostWorn: "Les plus portés",
     act: { quest: "En quête", grind: "Farm", city: "En ville", travel: "En voyage", fish: "Pêche", pvp: "JcJ", dungeon: "Donjon", idle: "Inactifs" },
@@ -103,7 +103,7 @@ function vivantPopulation(body, w) {
     { value: r => r.bots, unit: "bots", line2: r => (r.capital ? w.capital : "") });
   splitBar(document.getElementById("vvActs"), Object.keys(acts).map(k => ({ label: w.act[k] || k, count: acts[k], color: ACT_COLORS[k] || "var(--gold)" })));
   const souls = d.souls, soulHost = document.getElementById("vvSouls");
-  if (!souls) soulHost.innerHTML = '<p class="empty">' + esc(w.soonL1) + "</p>";
+  if (!souls) soulHost.innerHTML = '<p class="empty">' + esc((VIVANT.demo || []).includes("world") ? w.soonL1 : w.soulsOff) + "</p>";
   else splitBar(soulHost, Object.keys(SOUL_COLORS).map(k => ({ label: w.soul[k], count: souls[k] || 0, color: SOUL_COLORS[k] })));
   const sn = d.surname, snHost = document.getElementById("vvSurname");
   if (!sn) { snHost.innerHTML = '<p class="empty">' + esc(w.soonL1) + "</p>"; return; }

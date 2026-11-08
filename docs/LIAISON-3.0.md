@@ -130,7 +130,8 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
   - Le dashboard lit les 200 dernières lignes, en complétant par `events.jsonl.1` juste après une rotation, et les affiche dans l'onglet **Journal**, filtrable par `kind`.
 - **world.json** : écrit par CoA SquidBot (coa-3.0-live 0c3eb7c1, pas encore dans un build), activé par `AiPlayerbot.CoaLive.DataFile.Enable = 1`.
   - Il donne les 40 zones les plus peuplées. Les noms de zones viennent d'AreaTable.dbc, même quand MySQL est arrêté.
-  - Valent `null` : souls, `tick_ms.p95`, `bots_us_per_tick`, `by_strategy_us` et stuck. La page les montre comme tels.
+  - `souls` est écrit depuis a5dcd8c0 (bots en ligne par archétype). Il vaut `null` tant que `AiPlayerbot.CoaSoul.Enable = 0`, et la page le dit.
+  - Valent `null` : `tick_ms.p95`, `bots_us_per_tick`, `by_strategy_us` et stuck. La page les montre comme tels.
   - Les courbes de tick et de bots en ligne sur 6 h sont tenues par le dashboard, en mémoire : un point toutes les 5 min tant que la page est ouverte.
   - Le coût des snapshots n'additionne que les fichiers réels.
 - Correctif au passage : quand MySQL ne répond pas, les noms de zones (DBC) se chargent avant les classes (base).
