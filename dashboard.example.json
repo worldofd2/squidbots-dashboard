@@ -2,6 +2,13 @@
   "repack": "C:\\my-server",
   "port": 8088,
 
+  "systemdServices": {
+    "worldserver": "coa-worldserver.service",
+    "authserver": "coa-authserver.service"
+  },
+
+  "rawWorldConsole": true,
+
   "_comment_mysql": "Either drop this file next to a repack that holds Settings/database.json, or point mysqlArgs at your own client file. Never put a password in this file: keep it in the MySQL client file, outside the repository.",
   "mysqlArgs": ["--defaults-file=C:\\my-server\\mysql\\root-client.ini"],
   "mysqlExe": "C:\\Program Files\\MySQL\\MySQL Server 8.4\\bin\\mysql.exe",

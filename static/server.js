@@ -384,7 +384,12 @@ function renderGm() {
       '<div class="gm-buttons"><button class="btn" type="button" data-gm="announce">' + esc(words.gmAnnounce) + '</button>' +
       '<button class="btn" type="button" data-gm="notify">' + esc(words.gmNotify) + '</button>' +
       '<button class="btn" type="button" data-gm="saveall">' + esc(words.gmSave) + '</button><span class="meta">' + esc(words.gmMessageHelp) + "</span></div>" +
-      '<p class="gm-result" id="gmResult"></p></section>' +
+      '<p class="gm-result" id="gmResult"></p>' +
+      (GMDATA.rawConsole ? '<label class="gm-label" for="gmCommand">Worldserver command</label>' +
+        '<input type="text" id="gmCommand" maxlength="512" placeholder="server info" autocomplete="off" spellcheck="false">' +
+        '<div class="gm-buttons"><button class="btn" type="button" data-gm="console">Send command</button></div>' +
+        '<pre class="gm-result" id="gmCommandResult" role="status" style="white-space: pre-wrap"></pre>' : "") +
+      '</section>' +
     '<div class="grid wide"><section class="card"><h2>' + esc(words.gmPlayers) + ' <span class="sub">' + esc(words.gmPlayersHelp) + "</span></h2>" +
       '<input class="gm-filter" id="gmFilter" type="search" placeholder="' + esc(words.gmFilter) + '" value="' + esc(GM_FILTER) + '">' +
       (rows ? '<div class="scroll"><table class="gm-table"><thead><tr><th>' + esc(words.gmName) + '</th><th class="r">' + esc(words.gmLevel) +
@@ -435,6 +440,10 @@ document.addEventListener("click", async event => {
   const pick = (GMDATA.players || []).find(p => p.name === GM_PICK) || {};
   const body = { action: action, guid: pick.guid, account: pick.account };
   if (action === "announce" || action === "notify") body.text = value("gmText");
+  if (action === "console") {
+    body.command = value("gmCommand")?.trim();
+    if (!body.command || !window.confirm("Send this command to the selected realm's Worldserver?")) return;
+  }
   if (action === "unstuck") body.where = button.dataset.where;
   if (action === "mute") { body.minutes = value("gmMinutes"); body.reason = value("gmMuteReason"); }
   if (action === "level") body.level = value("gmLevelValue");
@@ -443,7 +452,9 @@ document.addEventListener("click", async event => {
   if (action === "ban") { body.duration = value("gmBanDuration"); body.reason = value("gmBanReason"); }
   if (action === "gmlevel") body.level = value("gmLevelGm");
   if (GM_CONFIRM.includes(action) && !window.confirm(words.gmConfirm(button.textContent, pick.name || ""))) return;
-  const out = document.getElementById(["announce", "notify", "saveall"].includes(action) ? "gmResult" : "gmPickResult");
+  const resultId = action === "console" ? "gmCommandResult" :
+    ["announce", "notify", "saveall"].includes(action) ? "gmResult" : "gmPickResult";
+  const out = document.getElementById(resultId);
   out.className = "gm-result";
   out.textContent = "…";
   button.disabled = true;

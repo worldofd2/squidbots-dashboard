@@ -1120,6 +1120,7 @@ if sys.platform.startswith("linux") and isinstance(configured_units, dict):
             SERVICE_UNITS[service] = unit
 SERVICE_LOCK = threading.Lock()
 
+RAW_CONSOLE = SETTINGS.get("rawWorldConsole") is True
 GM_ENABLED = SETTINGS.get("gmTools", True) is not False and SETTINGS.get("console", True) is not False
 
 
@@ -1642,6 +1643,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             running = bool(MONITOR.state(ctx.realm.key).get("running"))
             status, payload = answer_or_error(lambda: GM.overview(ctx, MONITOR._ra_port(ctx.realm), running))
+            if status == 200:
+                payload["rawConsole"] = RAW_CONSOLE
             zones = _armory_names()[2] if status == 200 else {}
             for player in payload.get("players") or []:
                 player["zoneName"] = zones.get(player["zone"], "")
@@ -1786,6 +1789,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 body = self._body()
             except ValueError:
                 self._json({"error": "expected a JSON object"}, 400)
+                return
+            if body.get("action") == "console" and not RAW_CONSOLE:
+                self._json({"error": "Raw console commands are disabled in dashboard.json."}, 403)
                 return
             status, payload = answer_or_error(lambda: GM.run(ctx, MONITOR._ra_port(ctx.realm), body))
             self._json(payload, status)

@@ -69,6 +69,12 @@ def _int(value, low, high, what):
 # action: (needs a character, what the console gets). `body` is the request; the result is the command line.
 def _command(action, body):
     target = lambda: _guid(body.get("guid"))  # noqa: E731
+    if action == "console":
+        line = body.get("command")
+        if (not isinstance(line, str) or len(line) > 512
+                or not line.strip() or re.search(r"[\x00-\x1f\x7f]", line)):
+            raise GmError("Enter one console command of up to 512 characters.")
+        return line.strip()
     if action == "announce":
         return ".announce " + _text(body.get("text"), 200, "message")
     if action == "notify":
@@ -159,9 +165,13 @@ class Gm:
         if ok and re.search(r"(not found|no such|incorrect|wrong|syntax|unknown|does not exist|can't|cannot)", answer, re.I):
             ok = False
         # The core answers a command it could not run with its help text: kick, for one, needs the player online.
-        if answer.startswith("Syntax:"):
+        if action != "console" and answer.startswith("Syntax:"):
             answer = "The server did not run it (is the player online?). " + answer.splitlines()[0]
-        self.write(ctx.realm.key, action, command, ok, answer)
+        if action == "console":
+            # Console commands and replies can include credentials.
+            self.write(ctx.realm.key, action, "World console command", ok, "")
+        else:
+            self.write(ctx.realm.key, action, command, ok, answer)
         return {"ok": ok, "command": command, "answer": answer[:2000]}
 
     def write(self, realm, action, command, ok, answer):
