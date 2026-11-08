@@ -155,6 +155,53 @@ function renderPerf() {
   const tick = state.tickMean != null ? state.tickMean : state.tick;
   const peak = Math.max.apply(null, points.map(p => p.ramMax || p.ram || 0).concat([0]));
   const cpu = state.cpu;
+
+  // Authserver status from the same performance API.
+  const auth = PERF.auth;
+
+  const authUptime = (seconds) => {
+    if (seconds == null) return "–";
+
+    const days = Math.floor(seconds / 86400);
+    const hours = Math.floor((seconds % 86400) / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+
+    return [
+      days ? days + "d" : "",
+      hours ? hours + "h" : "",
+      minutes + "m"
+    ].filter(Boolean).join(" ");
+  };
+
+  const authHtml = auth ? `
+    <section class="card">
+      <h2>
+        Authserver
+        <span class="state-badge ${auth.running ? "running" : "stopped"}">
+          ${auth.running ? "Running" : "Stopped"}
+        </span>
+      </h2>
+      <div class="figures">
+        <div class="figure">
+          <div class="label">Process ID</div>
+          <div class="value num">${auth.pid ?? "–"}</div>
+        </div>
+        <div class="figure">
+          <div class="label">Memory</div>
+          <div class="value num">${auth.ramMo == null ? "–" : num(auth.ramMo) + " MB"}</div>
+        </div>
+        <div class="figure">
+          <div class="label">CPU</div>
+          <div class="value num">${auth.cpu == null ? "–" : one(auth.cpu) + "%"}</div>
+        </div>
+        <div class="figure">
+          <div class="label">Uptime</div>
+          <div class="value num">${authUptime(auth.uptimeSeconds)}</div>
+        </div>
+      </div>
+    </section>
+  ` : "";
+
   const tiles = [
     [words.srvTick, tick == null ? "–" : num(tick) + " ms", words.srvTickFoot, tickClass(tick)],
     [words.srvPlayers, state.players == null ? "–" : num(state.players), state.characters != null ? num(state.characters) + (lang === "fr" ? " personnages dans le monde" : " characters in world") : ""],
@@ -174,7 +221,8 @@ function renderPerf() {
     '<section class="card server-head mode-' + esc((PERF.realm || {}).mode || REALM) + '"><span class="gem big" aria-hidden="true"></span>' +
       "<div><h2>" + esc((PERF.realm || {}).name || "") + ' <span class="state-badge ' + status + '">' + esc(W.realmState[status]) + "</span></h2>" +
       '<div class="meta">' + (state.uptime ? esc(words.srvUptime + " " + state.uptime) + " · " : "") +
-      (PERF.every ? esc(words.srvSampling(PERF.every)) : esc(words.srvOff)) + (state.pid ? " · pid " + state.pid : "") + "</div></div></section>" +
+      (PERF.every ? esc(words.srvSampling(PERF.every)) : esc(words.srvOff)) + (state.pid ? " · pid " + state.pid : "") + "</div></div></section>" + (PERF.every ? esc(words.srvSampling(PERF.every)) : esc(words.srvOff)) + (state.pid ? " · pid " + state.pid : "") + "</div></div></section>" +
+    authHtml +
     '<div class="figures">' + tiles.map(t => '<div class="figure ' + (t[3] || "") + '"><div class="label">' + esc(t[0]) +
       '</div><div class="value num">' + esc(t[1]) + '</div><div class="foot">' + esc(t[2]) + "</div></div>").join("") + "</div>" +
     '<div class="grid wide"><section class="card"><h2>' + esc(words.srvCharts) + ' <span class="sub"></span></h2>' +

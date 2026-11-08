@@ -108,6 +108,9 @@ class Monitor:
         self.use_ra = use_ra
         self.lock = threading.Lock()
         self.cpu = procinfo.CpuMeter()
+        # Independent CPU monitoring for authserver.
+        self.auth_cpu = procinfo.CpuMeter()
+        self.auth = {"running": False}
         self.tracks = {r.key: Track(r.file("perf.json")) for r in realms}
         self._coa_ra = None
 
@@ -168,6 +171,74 @@ class Monitor:
 
         return 0
 
+    def _auth_snapshot(self):
+        """Get authserver process status and resource usage."""
+        exe = "authserver.exe" if os.name == "nt" else "authserver"
+
+        # Only monitor an authserver belonging to this CoA installation.
+        root = os.path.abspath(self.root)
+        matches = procinfo.find(exe)
+
+        pid = None
+        path = None
+
+        for candidate, candidate_path in matches.items():
+            full_path = os.path.abspath(candidate_path)
+            if os.path.commonpath([root, full_path]) == root:
+                pid = candidate
+                path = full_path
+                break
+
+        state = {
+            "running": pid is not None,
+            "pid": pid,
+            "path": path,
+            "ramMo": None,
+            "cpu": None,
+            "uptimeSeconds": None,
+            "at": round(time.time())
+        }
+
+        if pid is None:
+            return state
+
+        sample = self.auth_cpu.sample(pid)
+        if sample:
+            state["ramMo"] = sample["ramMo"]
+            state["cpu"] = sample["cpu"]
+
+        # Process uptime through Linux /proc.
+        # On Windows, omit uptime until a native implementation is added.
+        if os.name == "posix" and os.path.exists("/proc/uptime"):
+            try:
+                with open(f"/proc/{pid}/stat", encoding="utf-8") as f:
+                    stat = f.read()
+
+                fields = stat[stat.rfind(")") + 2:].split()
+                start_ticks = int(fields[19])
+
+                with open("/proc/uptime", encoding="utf-8") as f:
+                    system_uptime = float(f.read().split()[0])
+
+                elapsed = system_uptime - (
+                    start_ticks / os.sysconf("SC_CLK_TCK")
+                )
+                state["uptimeSeconds"] = max(0, int(elapsed))
+
+            except (OSError, ValueError, IndexError):
+                pass
+
+        return state
+
+    def auth_state(self):
+        """Return the latest authserver sample."""
+        if not self.every:
+            with self.lock:
+                self.auth = self._auth_snapshot()
+
+        with self.lock:
+            return dict(self.auth)
+
     def _ra_port(self, realm):
         """The realm's console port. A launcher realm without one has none: never the CoA realm's, or a command meant
         for it would run on the CoA world."""
@@ -223,6 +294,10 @@ class Monitor:
                 track.add({"ts": state["at"], "up": 1 if state.get("running") else 0, "ram": state.get("ramMo"),
                            "cpu": state.get("cpu"), "tick": state.get("tickMean") or state.get("tick"),
                            "players": state.get("players"), "bots": state.get("bots")})
+        # Sample authserver alongside worldserver.
+        auth = self._auth_snapshot()
+        with self.lock:
+            self.auth = auth
         changed |= self._crash_reports()
         for realm in self.realms:
             self.tracks[realm.key].save(force=realm.key in changed)     # events at once, curves every few minutes
