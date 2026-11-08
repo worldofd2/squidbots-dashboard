@@ -1068,7 +1068,7 @@ class Context:
         self.stats = Stats(self)
         self.pvp = Pvp(self)
         self.market = market.Market(mysql, self)
-        self.vivant = vivant.Vivant(self)
+        self.vivant = vivant.Vivant(self, mysql, SETTINGS.get("squidbotDir"))
         self._armory = None
         self.armory_error = None
 

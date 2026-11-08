@@ -5,7 +5,7 @@
 const VIVANT_WORDS = {
   en: {
     tabs: { population: "Population", economy: "Economy", groups: "Groups & dungeons", health: "Health" },
-    demo: t => "Made-up figures for " + t + ": SquidBot does not write these files yet (CoA Bots 3.0).",
+    demo: t => "Made-up figures for " + t + ": the server does not write these files yet (CoA Bots 3.0).",
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
     zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)",
@@ -13,10 +13,10 @@ const VIVANT_WORDS = {
     mostWorn: "Most worn",
     act: { quest: "Questing", grind: "Grinding", city: "In town", travel: "Travelling", fish: "Fishing", pvp: "PvP", dungeon: "Dungeon", idle: "Idle" },
     soul: { lazy: "Lazy", quester: "Quester", wanderer: "Wanderer", trader: "Trader", pvp: "PvP" },
-    auctions: "Auctions", goldAll: "Gold in circulation", goldBots: "Held by bots", sold24: "Sold, 24 h", crafted24: "Crafted, 24 h", ordersOpen: "Open orders",
+    auctions: "Auctions", goldAll: "Gold in circulation", goldBots: "Held by bots", sold24: "Sold, 24 h", crafted24: "Crafted, 24 h", ordersTile: "Orders (last 50)", refusedN: n => n + " refused", goldWait: "first count within 10 min", needs: what => "Nothing yet: needs " + what + " in the module settings.", noAuction: "No auction right now.",
     categories: "Prices by category", cat: "Category", avg: "Average", band: "Low · usual · high", volume: "Sold 24 h",
     topSales: "Best sellers, 24 h", crafts: "Crafts, 24 h", orders: "Orders to crafting bots", item: "Item", qty: "Qty", gold: "Gold",
-    orderState: { crafting: "crafting", "waiting materials": "waiting for materials", delivered: "delivered" },
+    orderState: { mailed: "mailed", refused: "refused", busy: "busy" },
     by: "by", forWhom: "for", profit: "profit", auctionsWeek: "Auctions, 48 h",
     runsToday: "Runs today", cleared: "Cleared", wipes: "Wipes", bossKills: "Bosses killed", running: "Running now",
     noRun: "No group in a dungeon right now.", dungeon: "Dungeon", runs: "Runs", median: "Median", best: "Best", started: "started",
@@ -28,7 +28,7 @@ const VIVANT_WORDS = {
   },
   fr: {
     tabs: { population: "Population", economy: "Économie", groups: "Groupes et donjons", health: "Santé" },
-    demo: t => "Données factices pour " + t + " : SquidBot n'écrit pas encore ces fichiers (CoA Bots 3.0).",
+    demo: t => "Données factices pour " + t + " : le serveur n'écrit pas encore ces fichiers (CoA Bots 3.0).",
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
     zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)",
@@ -36,10 +36,10 @@ const VIVANT_WORDS = {
     mostWorn: "Les plus portés",
     act: { quest: "En quête", grind: "Farm", city: "En ville", travel: "En voyage", fish: "Pêche", pvp: "JcJ", dungeon: "Donjon", idle: "Inactifs" },
     soul: { lazy: "Paresseux", quester: "Quêteur", wanderer: "Flâneur", trader: "Commerçant", pvp: "JcJ" },
-    auctions: "Enchères", goldAll: "Or en circulation", goldBots: "Détenu par les bots", sold24: "Vendus, 24 h", crafted24: "Fabriqués, 24 h", ordersOpen: "Commandes en cours",
+    auctions: "Enchères", goldAll: "Or en circulation", goldBots: "Détenu par les bots", sold24: "Vendus, 24 h", crafted24: "Fabriqués, 24 h", ordersTile: "Commandes (50 dernières)", refusedN: n => n + " refusée(s)", goldWait: "premier compte sous 10 min", needs: what => "Rien pour l’instant : il faut " + what + " dans les réglages du module.", noAuction: "Aucune enchère pour l’instant.",
     categories: "Prix par catégorie", cat: "Catégorie", avg: "Moyen", band: "Bas · usuel · haut", volume: "Vendus 24 h",
     topSales: "Meilleures ventes, 24 h", crafts: "Artisanat, 24 h", orders: "Commandes aux bots artisans", item: "Objet", qty: "Qté", gold: "Or",
-    orderState: { crafting: "en fabrication", "waiting materials": "attend les composants", delivered: "livrée" },
+    orderState: { mailed: "envoyée", refused: "refusée", busy: "artisan occupé" },
     by: "par", forWhom: "pour", profit: "bénéfice", auctionsWeek: "Enchères, 48 h",
     runsToday: "Runs du jour", cleared: "Terminés", wipes: "Wipes", bossKills: "Boss tués", running: "En cours",
     noRun: "Aucun groupe en donjon pour l'instant.", dungeon: "Donjon", runs: "Runs", median: "Médiane", best: "Record", started: "commencé",
@@ -112,31 +112,44 @@ function vivantPopulation(body, w) {
     { value: r => r.bots, unit: "bots", line2: () => "" });
 }
 
+const PROFESSIONS = { 164: "Blacksmithing", 165: "Leatherworking", 171: "Alchemy", 182: "Herbalism", 185: "Cooking", 186: "Mining",
+  197: "Tailoring", 202: "Engineering", 333: "Enchanting", 356: "Fishing", 393: "Skinning", 755: "Jewelcrafting", 773: "Inscription", 129: "First Aid" };
+const money = v => (v === null || v === undefined ? "–" : coins(v));
+const count = v => (v === null || v === undefined ? "–" : num(v));
+
 function vivantEconomy(body, w) {
+  // Nulls are real (LIAISON-3.0 §6): gold before the first query, prices without buyouts, bands without Market.Enable.
   const d = VIVANT.economy || {};
-  const cats = d.categories || [], orders = d.orders || [];
-  const sold = cats.reduce((s, c) => s + (c.volume_24h || 0), 0), crafted = (d.crafts_24h || []).reduce((s, c) => s + c.count, 0);
-  const catRows = cats.map(c => "<tr><td>" + esc(c.name || "#" + c.class) + '</td><td class="r">' + num(c.auctions) + '</td><td class="r">' + coins(c.avg) +
-    '</td><td class="r meta">' + coins(c.low) + " · " + coins(c.usual) + " · " + coins(c.high) + '</td><td class="r">' + num(c.volume_24h) + "</td></tr>").join("");
-  const salesRows = (d.top_sales_24h || []).map(s => "<tr><td>" + qualityName(s.name || "#" + s.item, s.quality) + '</td><td class="r">' + num(s.count) +
-    '</td><td class="r">' + coins(s.gold) + "</td></tr>").join("");
-  const craftRows = (d.crafts_24h || []).map(c => "<tr><td>" + qualityName(c.name, c.quality) + '<div class="meta">' + esc(c.skill) + '</div></td><td class="r">' +
-    num(c.count) + '</td><td class="r">' + coins(c.profit) + "</td></tr>").join("");
+  const cats = d.categories || [], orders = d.orders || [], crafts = d.crafts_24h || [], sales = d.top_sales_24h || [];
+  const known = cats.filter(c => c.volume_24h !== null && c.volume_24h !== undefined);
+  const sold = known.length ? known.reduce((s, c) => s + c.volume_24h, 0) : null, crafted = crafts.reduce((s, c) => s + (c.count || 0), 0);
+  const className = c => c.name || (SW().mkClass[c.class] || "#" + c.class);
+  const band = c => (c.low === null && c.usual === null && c.high === null) || c.low === undefined ? "–" : money(c.low) + " · " + money(c.usual) + " · " + money(c.high);
+  const catRows = cats.map(c => "<tr><td>" + esc(className(c)) + '</td><td class="r">' + count(c.auctions) + '</td><td class="r">' + money(c.avg) +
+    '</td><td class="r meta">' + band(c) + '</td><td class="r">' + count(c.volume_24h) + "</td></tr>").join("");
+  const salesRows = sales.map(s => "<tr><td>" + qualityName(s.name || "#" + s.item, s.quality) + '</td><td class="r">' + num(s.count) +
+    '</td><td class="r">' + money(s.gold) + "</td></tr>").join("");
+  const craftRows = crafts.map(c => "<tr><td>" + qualityName(c.name || "#" + c.item, c.quality) + '<div class="meta">' + esc(PROFESSIONS[c.skill] || c.skill) +
+    '</div></td><td class="r">' + num(c.count) + '</td><td class="r">' + money(c.profit) + "</td></tr>").join("");
   const orderRows = orders.map(o => "<tr><td>" + qualityName(o.name || "#" + o.item, o.quality) + '<div class="meta">' + esc(w.by) + " " + esc(o.bot) + " · " +
-    esc(w.forWhom) + " " + esc(o.buyer) + '</div></td><td class="r">' + coins(o.price) + "</td><td>" + esc(w.orderState[o.state] || o.state) +
+    esc(w.forWhom) + " " + esc(o.buyer) + '</div></td><td class="r">' + (o.state === "refused" && !o.price ? "–" : money(o.price)) + '</td><td class="order-' + esc(o.state) + '">' + esc(w.orderState[o.state] || o.state) +
     '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
-  const table = (head, rows) => '<div class="scroll"><table><thead><tr>' + head + "</tr></thead><tbody>" + rows + "</tbody></table></div>";
-  body.innerHTML = topicError(d) + vivantFigures([[w.auctions, num(d.auctions), ""], [w.goldAll, coins(d.gold_circulating), ""],
-    [w.goldBots, coins(d.gold_bots), Math.round(d.gold_bots / Math.max(1, d.gold_circulating) * 100) + " %"], [w.sold24, num(sold), ""],
-    [w.crafted24, num(crafted), ""], [w.ordersOpen, num(orders.filter(o => o.state !== "delivered").length), ""]]) +
+  const refused = orders.filter(o => o.state === "refused").length;
+  const table = (head, rows, why) => rows ? '<div class="scroll"><table><thead><tr>' + head + "</tr></thead><tbody>" + rows + "</tbody></table></div>"
+    : '<p class="empty">' + esc(why) + "</p>";
+  const share = d.gold_bots !== null && d.gold_bots !== undefined && d.gold_circulating ? Math.round(d.gold_bots / d.gold_circulating * 100) + " %" : "";
+  body.innerHTML = topicError(d) + vivantFigures([[w.auctions, count(d.auctions), ""],
+    [w.goldAll, money(d.gold_circulating), d.gold_circulating === null ? w.goldWait : ""], [w.goldBots, money(d.gold_bots), share],
+    [w.sold24, count(sold), sold === null ? w.needs("Market.Enable") : ""], [w.crafted24, num(crafted), ""],
+    [w.ordersTile, num(orders.length), refused ? w.refusedN(refused) : ""]]) +
     '<section class="card"><h2>' + esc(w.categories) + "</h2>" + table("<th>" + esc(w.cat) + '</th><th class="r">' + esc(w.auctions) + '</th><th class="r">' +
-      esc(w.avg) + '</th><th class="r">' + esc(w.band) + '</th><th class="r">' + esc(w.volume) + "</th>", catRows) + "</section>" +
+      esc(w.avg) + '</th><th class="r">' + esc(w.band) + '</th><th class="r">' + esc(w.volume) + "</th>", catRows, w.noAuction) + "</section>" +
     '<div class="grid two"><section class="card"><h2>' + esc(w.topSales) + "</h2>" + table("<th>" + esc(w.item) + '</th><th class="r">' + esc(w.qty) +
-      '</th><th class="r">' + esc(w.gold) + "</th>", salesRows) + "</section>" +
+      '</th><th class="r">' + esc(w.gold) + "</th>", salesRows, w.needs("Market.Enable")) + "</section>" +
     '<section class="card"><h2>' + esc(w.crafts) + "</h2>" + table("<th>" + esc(w.item) + '</th><th class="r">' + esc(w.qty) + '</th><th class="r">' +
-      esc(w.profit) + "</th>", craftRows) + "</section></div>" +
+      esc(w.profit) + "</th>", craftRows, w.needs("Artisans")) + "</section></div>" +
     '<div class="grid two"><section class="card"><h2>' + esc(w.orders) + "</h2>" + table("<th>" + esc(w.item) + '</th><th class="r">' + esc(w.gold) +
-      "</th><th></th><th></th>", orderRows) + "</section>" +
+      "</th><th></th><th></th>", orderRows, w.needs("CraftOrders")) + "</section>" +
     '<section class="card"><h2>' + esc(w.auctionsWeek) + '</h2><div class="chart" id="vvAh"></div></section></div>';
   lineChart(document.getElementById("vvAh"), d.history || [], { value: p => p.auctions, label: w.auctionsWeek, unit: "" });
 }

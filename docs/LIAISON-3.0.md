@@ -113,3 +113,16 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
 - Pour chaque sujet absent, il sert des données factices, signalées par un bandeau.
 - `static/vivant.js` : la page privée `#vivant` (Population, Économie, Groupes et donjons, Santé). Les `null` du §6 s'affichent « – » ou « arrive avec CoA Bots 3.0 », jamais en faux chiffres.
 - Elle est absente de la copie publique, car `public_files()` la refuse.
+
+## 8. Branchement réel (08/11 soir)
+- **economy.json** est écrit par CoA Economie (commit 14068cc4, `AiPlayerbot.CoaEconomy.DataFile.Enable = 1`, coupé par défaut). La page Économie le lit tel quel.
+  - Les valeurs `null` (or, prix, bandes) s'affichent « – ».
+  - Les catégories (classe et sous-classe) sont regroupées par classe d'objet. Les prix sont pondérés par le nombre d'enchères.
+  - Les noms et qualités des objets viennent de `item_template`, en une requête par nouvel objet.
+  - Les métiers sont affichés par leur nom, à partir de l'id de compétence.
+  - Les états de commande sont mailed, refused et busy.
+  - La courbe des enchères sur 48 h est tenue par le dashboard (un point toutes les 15 min), car le module n'envoie que la valeur du moment.
+- **Correctif d'amorçage** : le module ne crée `squidbot/` qu'en écrivant, et il n'écrit que si `watch.json` existe. Le dashboard crée donc le dossier, mais seulement dans un dossier de logs existant.
+- **Dossier** : `squidbotDir` dans dashboard.json (même rôle que `AiPlayerbot.CoaDataDir`). Vide, c'est `squidbot/` à côté de CoaBots.log, c'est-à-dire `LogsDir`.
+- **world.json** (CoA SquidBot) et **events.jsonl** (CoA Monde) : aucune branche ne les écrit encore. Les onglets Population et Santé restent en données factices.
+- **groups.json** et **runs.jsonl** attendent le plan DC 3.0.

@@ -15,21 +15,37 @@ import time
 TOPICS = ("world", "economy", "groups")
 MAJOR = 1           # schema version this page understands: squidbot.<topic>/1
 WATCH_EVERY = 30    # seconds between two writes of watch.json
+HISTORY_EVERY = 15 * 60
+HISTORY_KEEP = 48 * 3600
 
 
 class Vivant:
-    def __init__(self, ctx):
-        self.dir = os.path.join(os.path.dirname(ctx.status_file), "squidbot")
+    def __init__(self, ctx, query=None, squidbot_dir=None):
+        self.ctx, self.query = ctx, query
+        self.items = {}     # item entry -> (name, quality), read once from item_template
+        # The module sends the auction count of the moment: the dashboard keeps the curve (a point per 15 min, 48 h).
+        self.history_file = ctx.file("vivant-history.json")
+        try:
+            self.history = json.load(open(self.history_file, encoding="utf-8"))
+        except (OSError, ValueError):
+            self.history = []
+        # The module's AiPlayerbot.CoaDataDir, by default <LogsDir>/squidbot: the folder of the realm's CoaBots.log.
+        self.dir = (ctx.realm.key == "coa" and squidbot_dir) or os.path.join(os.path.dirname(ctx.coa_log), "squidbot")
         self.lock = threading.Lock()
         self.cache = {}
         self.watched = 0.0
 
     def _watch(self, topics):
-        """Tell the module someone looks. Only where the module made its folder: nothing is created otherwise."""
+        """Tell the module someone looks. The module makes its folder only when it writes, and writes only once watched:
+        so the folder is made here, but only inside a logs folder that exists (never a stray path)."""
         now = time.time()
-        if now - self.watched < WATCH_EVERY or not os.path.isdir(self.dir):
+        if now - self.watched < WATCH_EVERY or not os.path.isdir(os.path.dirname(self.dir)):
             return
         self.watched = now
+        try:
+            os.makedirs(self.dir, exist_ok=True)
+        except OSError:
+            return
         tmp = os.path.join(self.dir, "watch.json.tmp")
         try:
             with open(tmp, "w", encoding="utf-8") as handle:
@@ -87,10 +103,44 @@ class Vivant:
                 elif data.get("at") and now - float(data["at"]) > 3 * data.get("every", 10):
                     out["stale"].append(topic)
                 out[topic] = data
+            if "economy" not in out["demo"] and not out["economy"].get("error"):
+                self._name_items(out["economy"])
+                out["economy"] = dict(out["economy"], categories=by_class(out["economy"].get("categories") or []))
+                out["economy"] = dict(out["economy"], history=self._remember(out["economy"]))
             last = self._last_runs()
             if last is not None:
                 out["groups"] = dict(out["groups"], last=last)
             return out
+
+    def _remember(self, economy):
+        at, auctions = economy.get("at"), economy.get("auctions")
+        if at and auctions is not None and (not self.history or at - self.history[-1]["ts"] >= HISTORY_EVERY):
+            self.history = [p for p in self.history if at - p["ts"] < HISTORY_KEEP] + [{"ts": int(at), "auctions": int(auctions)}]
+            try:
+                tmp = self.history_file + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as handle:
+                    json.dump(self.history, handle)
+                os.replace(tmp, self.history_file)
+            except OSError:
+                pass
+        return self.history
+
+    def _name_items(self, economy):
+        """The module gives item entries only: add their name and quality (one query for the entries not seen yet)."""
+        rows = [r for key in ("top_sales_24h", "crafts_24h", "orders") for r in economy.get(key) or [] if isinstance(r, dict) and r.get("item")]
+        wanted = sorted({int(r["item"]) for r in rows} - set(self.items))
+        if wanted and self.query:
+            try:
+                for entry, name, quality in self.query("SELECT entry, name, Quality FROM %s.item_template WHERE entry IN (%s)"
+                                                      % (self.ctx.db["world"], ",".join(map(str, wanted)))):
+                    self.items[int(entry)] = (name, int(quality))
+            except Exception:  # noqa: BLE001  names are a comfort: the page shows the entry instead
+                pass
+        for r in rows:
+            name, quality = self.items.get(int(r["item"]), (None, None))
+            r.setdefault("name", name)
+            if r.get("quality") is None:
+                r["quality"] = quality
 
     def _last_runs(self, keep=8):
         """The newest lines of runs.jsonl (one per finished run, Dungeon Clear's record), newest first; None without it."""
@@ -114,6 +164,32 @@ class Vivant:
             if len(rows) == keep:
                 break
         return rows
+
+
+def by_class(categories):
+    """The module counts per item class and subclass (Armor/Cloth, Armor/Plate…): one row per class here, prices
+    weighted by auctions, a null price staying null when no subclass of the class has one."""
+    rows = {}
+    for c in categories:
+        if not isinstance(c, dict) or "class" not in c:
+            continue
+        row = rows.setdefault(c["class"], {"class": c["class"], "subs": 0, "auctions": 0, "volume_24h": 0, "_w": {}})
+        row["subs"] += 1
+        n = int(c.get("auctions") or 0)
+        row["auctions"] += n
+        row["volume_24h"] += int(c.get("volume_24h") or 0)
+        for key in ("avg", "low", "usual", "high"):
+            if c.get(key) is not None:
+                total, weight = row["_w"].get(key, (0, 0))
+                row["_w"][key] = (total + c[key] * max(n, 1), weight + max(n, 1))
+    out = []
+    for row in rows.values():
+        weights = row.pop("_w")
+        for key in ("avg", "low", "usual", "high"):
+            total, weight = weights.get(key, (0, 0))
+            row[key] = round(total / weight) if weight else None
+        out.append(row)
+    return sorted(out, key=lambda r: -r["auctions"])
 
 
 # ------------------------------------------------------------------ made-up figures ----
@@ -175,13 +251,13 @@ def _demo_economy(now):
     return {"auctions": sum(c["auctions"] for c in cats), "gold_circulating": 18450000 + r.randint(-90000, 90000),
             "gold_bots": 16200000 + r.randint(-90000, 90000), "categories": cats,
             "top_sales_24h": [{"item": i, "name": n, "quality": q, "count": r.randint(20, 220), "gold": round(g * r.uniform(.8, 1.2))} for i, n, q, g in ITEMS],
-            "crafts_24h": [{"skill": "Tailoring", "name": "Runecloth Bag", "quality": 1, "count": 31, "profit": 52000},
-                           {"skill": "Alchemy", "name": "Major Healing Potion", "quality": 1, "count": 64, "profit": 38000},
-                           {"skill": "Blacksmithing", "name": "Thorium Belt", "quality": 2, "count": 6, "profit": 27000},
-                           {"skill": "Enchanting", "name": "Large Brilliant Shard", "quality": 3, "count": 18, "profit": 21000}],
-            "orders": [{"id": 77, "buyer": "Squid", "bot": "Thorgal", "name": "Arcanite Reaper", "quality": 4, "price": 1250000, "state": "crafting", "at": int(now - 1800)},
-                       {"id": 78, "buyer": "Squid", "bot": "Lyria", "name": "Robe of the Void", "quality": 4, "price": 640000, "state": "waiting materials", "at": int(now - 5400)},
-                       {"id": 74, "buyer": "Nimue", "bot": "Grimbald", "name": "Thorium Shield Spike", "quality": 2, "price": 85000, "state": "delivered", "at": int(now - 86000)}],
+            "crafts_24h": [{"skill": 197, "name": "Runecloth Bag", "quality": 1, "count": 31, "profit": 52000},
+                           {"skill": 171, "name": "Major Healing Potion", "quality": 1, "count": 64, "profit": 38000},
+                           {"skill": 164, "name": "Thorium Belt", "quality": 2, "count": 6, "profit": 27000},
+                           {"skill": 333, "name": "Large Brilliant Shard", "quality": 3, "count": 18, "profit": 21000}],
+            "orders": [{"id": 77, "buyer": "Squid", "bot": "Thorgal", "name": "Arcanite Reaper", "quality": 4, "price": 1250000, "state": "mailed", "at": int(now - 1800)},
+                       {"id": 78, "buyer": "Squid", "bot": "Lyria", "name": "Robe of the Void", "quality": 4, "price": 640000, "state": "busy", "at": int(now - 5400)},
+                       {"id": 74, "buyer": "Nimue", "bot": "Grimbald", "name": "Thorium Shield Spike", "quality": 2, "price": 85000, "state": "refused", "at": int(now - 86000)}],
             "history": [{"ts": int(now - i * 3600), "auctions": 3000 + 300 * math.sin((now - i * 3600) / 20000)} for i in range(48, -1, -1)],
             "at": int(now), "every": 60, "buildUs": 1250}
 

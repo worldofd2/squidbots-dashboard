@@ -31,6 +31,9 @@
   "_comment_live": "Optional: the bot-status.json that mod-playerbots writes every few seconds when AiPlayerbot.CoaStatusFile names it (playerbots.conf), for live positions and what each bot is doing. Without it the map uses the last character save.",
   "botStatusFile": "C:\\my-server\\server\\logs\\bot-status.json",
 
+  "_comment_squidbot": "Optional: the folder of SquidBot's data files (economy.json, world.json…), when AiPlayerbot.CoaDataDir moves it. Empty: the squidbot folder beside CoaBots.log.",
+  "squidbotDir": "",
+
   "_comment_dates": "uptimeSince counts the server hours from that date; countFrom makes every figure start there instead of at the bots' creation.",
   "uptimeSince": "2026-09-01 00:00:00",
 
