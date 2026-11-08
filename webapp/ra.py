@@ -20,14 +20,18 @@ class RaError(Exception):
 
 
 def account(root):
-    """(user, password, CoA realm's RA port) from the repack's settings."""
-    try:
-        with open(os.path.join(root, "Settings", "repack.json"), encoding="utf-8-sig") as handle:
-            settings = json.load(handle)
-    except (OSError, ValueError):
-        settings = {}
-    return (str(settings.get("raUsername") or "local"), str(settings.get("raPassword") or "local"),
-            int(settings.get("raPort") or 3443))
+    """Read RA credentials from Linux configuration."""
+
+    config_file = "/etc/coa-dashboard/ra.json"
+
+    with open(config_file, "r", encoding="utf-8") as handle:
+        settings = json.load(handle)
+
+    return (
+        str(settings["raUsername"]),
+        str(settings["raPassword"]),
+        int(settings.get("raPort", 3443))
+    )
 
 
 def clean(text):
