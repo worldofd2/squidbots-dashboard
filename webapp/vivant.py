@@ -107,6 +107,11 @@ class Vivant:
                 self._name_items(out["economy"])
                 out["economy"] = dict(out["economy"], categories=by_class(out["economy"].get("categories") or []))
                 out["economy"] = dict(out["economy"], history=self._remember(out["economy"]))
+            events = self._events()
+            if events is None:
+                events = _demo_events(now)
+                out["demo"].append("events")
+            out["events"] = events
             last = self._last_runs()
             if last is not None:
                 out["groups"] = dict(out["groups"], last=last)
@@ -144,26 +149,41 @@ class Vivant:
 
     def _last_runs(self, keep=8):
         """The newest lines of runs.jsonl (one per finished run, Dungeon Clear's record), newest first; None without it."""
-        path = os.path.join(self.dir, "runs.jsonl")
+        return tail_jsonl(os.path.join(self.dir, "runs.jsonl"), keep)
+
+    def _events(self, keep=200):
+        """The newest lines of events.jsonl, newest first, topped up from events.jsonl.1 just after a rotation;
+        None when the module writes none (AiPlayerbot.CoaWorld.Events.Enable off)."""
+        path = os.path.join(self.dir, "events.jsonl")
+        rows = tail_jsonl(path, keep)
+        if rows is not None and len(rows) < keep:
+            rows += tail_jsonl(path + ".1", keep - len(rows)) or []
+        return rows
+
+
+def tail_jsonl(path, keep, span=256 * 1024):
+    """The last `keep` well-formed lines of a JSON-lines journal, newest first, reading only its last `span` bytes."""
+    try:
+        with open(path, "rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            start = max(0, handle.tell() - span)
+            handle.seek(start)
+            lines = handle.read().decode("utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    if start:
+        lines = lines[1:]   # cut in the middle of a line
+    rows = []
+    for line in reversed(lines):
         try:
-            with open(path, "rb") as handle:
-                handle.seek(0, os.SEEK_END)
-                start = max(0, handle.tell() - 64 * 1024)
-                handle.seek(start)
-                lines = handle.read().decode("utf-8", errors="replace").splitlines()
-            if start:
-                lines = lines[1:]   # cut in the middle of a line
-        except OSError:
-            return None
-        rows = []
-        for line in reversed(lines):
-            try:
-                rows.append(json.loads(line))
-            except ValueError:
-                continue
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(row, dict):
+            rows.append(row)
             if len(rows) == keep:
                 break
-        return rows
+    return rows
 
 
 def by_class(categories):
@@ -291,6 +311,27 @@ def _demo_groups(now):
             "today": {"runs": sum(b["runs"] for b in by), "cleared": sum(b["cleared"] for b in by),
                       "wipes": sum(b["wipes"] for b in by), "bossKills": sum(b["cleared"] for b in by) * 6},
             "at": int(now), "every": 15, "buildUs": 90}
+
+
+def _demo_events(now):
+    r = _rng(now, 4)
+    lines = [("invasion", "", "The Scourge invades Darkshire: guards and bots rally at the town hall."),
+             ("rush", "", "Rush on Zul'Farrak: 4 groups of bots heading there."),
+             ("server_first", "Kaelis", "Server first: Kaelis reaches level 60."),
+             ("guild", "Grimbald", "<Iron Tide> Grimbald dings 42."),
+             ("guild", "Lyria", "<Moonwhisper> Lyria loots [Robe of the Archmage]."),
+             ("stuck", "Arwen", "Stuck in Westfall (no path) for 3 min."),
+             ("unstuck", "Arwen", "Freed: teleported to the nearest graveyard."),
+             ("boss", "Thorgal", "Group of Thorgal kills Edwin VanCleef (The Deadmines)."),
+             ("wipe", "Brienne", "Group of Brienne wipes on Gahz'rilla (Zul'Farrak)."),
+             ("order", "Thorgal", "Thorgal mails [Arcanite Reaper] to Squid."),
+             ("error", "", "CoA Economy: cannot write economy.json.tmp")]
+    out, at = [], now
+    for _ in range(40):
+        kind, bot, text = r.choice(lines)
+        at -= r.randint(20, 400)
+        out.append({"at": int(at), "kind": kind, "bot": bot, "text": text})
+    return out
 
 
 DEMO = {"world": _demo_world, "economy": _demo_economy, "groups": _demo_groups}

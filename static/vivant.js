@@ -4,7 +4,9 @@
 
 const VIVANT_WORDS = {
   en: {
-    tabs: { population: "Population", economy: "Economy", groups: "Groups & dungeons", health: "Health" },
+    tabs: { population: "Population", economy: "Economy", groups: "Groups & dungeons", health: "Health", events: "Journal" },
+    allKinds: "All", noEvent: "Nothing in the journal yet.", eventsHelp: "The newest 200 lines of events.jsonl, written by the server as things happen.",
+    kind: { invasion: "Invasion", rush: "Rush", server_first: "Server first", guild: "Guild", stuck: "Stuck", unstuck: "Unstuck", boss: "Boss", wipe: "Wipe", order: "Order", error: "Error" },
     demo: t => "Made-up figures for " + t + ": the server does not write these files yet (CoA Bots 3.0).",
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
@@ -27,7 +29,9 @@ const VIVANT_WORDS = {
     actionsSoon: "Commands to the bots (stop, resume, summon, unstuck) arrive with the module, through the world console.",
   },
   fr: {
-    tabs: { population: "Population", economy: "Économie", groups: "Groupes et donjons", health: "Santé" },
+    tabs: { population: "Population", economy: "Économie", groups: "Groupes et donjons", health: "Santé", events: "Journal" },
+    allKinds: "Tout", noEvent: "Rien dans le journal pour l’instant.", eventsHelp: "Les 200 dernières lignes d’events.jsonl, écrites par le serveur au fil de l’eau.",
+    kind: { invasion: "Invasion", rush: "Ruée", server_first: "Premier du serveur", guild: "Guilde", stuck: "Coincé", unstuck: "Décoincé", boss: "Boss", wipe: "Wipe", order: "Commande", error: "Erreur" },
     demo: t => "Données factices pour " + t + " : le serveur n'écrit pas encore ces fichiers (CoA Bots 3.0).",
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
@@ -79,7 +83,7 @@ function renderVivant() {
   const banners = (VIVANT.demo && VIVANT.demo.length ? '<div class="banner">' + esc(w.demo(VIVANT.demo.join(", "))) + "</div>" : "") +
     (VIVANT.stale && VIVANT.stale.length ? '<div class="banner">' + esc(w.stale(VIVANT.stale.join(", "))) + "</div>" : "");
   host.innerHTML = banners + '<div class="tabs" role="tablist">' + tabs + '</div><div id="vivantBody"></div>';
-  ({ population: vivantPopulation, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth })[VIVANT_TAB](document.getElementById("vivantBody"), w);
+  ({ population: vivantPopulation, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth, events: vivantEvents })[VIVANT_TAB](document.getElementById("vivantBody"), w);
 }
 
 function topicError(data) { return data && data.error ? '<div class="banner">' + esc(data.error) + "</div>" : ""; }
@@ -178,6 +182,29 @@ function vivantGroups(body, w) {
       esc(w.best) + "</th></tr></thead><tbody>" + dungeons + "</tbody></table></div></section>" +
     '<section class="card"><h2>' + esc(w.lastRuns) + '</h2><div class="scroll"><table><tbody>' + last + "</tbody></table></div></section>";
 }
+
+const KIND_COLORS = { invasion: "var(--horde)", rush: "#c96b3a", server_first: "var(--gold-bright)", guild: "var(--accent)", stuck: "#d6a03f",
+  unstuck: "#7d9cc4", boss: "#b36df2", wipe: "var(--horde)", order: "var(--gold)", error: "#ff5a5a" };
+let VIVANT_KIND = "";
+
+function vivantEvents(body, w) {
+  const rows = VIVANT.events || [];
+  const kinds = Array.from(new Set(rows.map(e => e.kind))).sort();
+  const shown = VIVANT_KIND ? rows.filter(e => e.kind === VIVANT_KIND) : rows;
+  const pills = '<div class="tabs" role="tablist">' + ["", ...kinds].map(k => '<button type="button" data-vkind="' + esc(k) + '" aria-selected="' +
+    (k === VIVANT_KIND) + '">' + esc(k ? (w.kind[k] || k) : w.allKinds) + (k ? " · " + rows.filter(e => e.kind === k).length : "") + "</button>").join("") + "</div>";
+  const lines = shown.map(e => '<tr><td class="meta">' + esc(ago(e.at)) + '</td><td><span style="color:' + (KIND_COLORS[e.kind] || "var(--text-muted)") + '">' +
+    esc(w.kind[e.kind] || e.kind) + "</span></td><td>" + (e.bot ? "<strong>" + esc(e.bot) + "</strong> " : "") + esc(e.text) + "</td></tr>").join("");
+  body.innerHTML = '<section class="card"><h2>' + esc(w.tabs.events) + '</h2><p class="meta">' + esc(w.eventsHelp) + "</p>" + pills +
+    (lines ? '<div class="scroll"><table><tbody>' + lines + "</tbody></table></div>" : '<p class="empty">' + esc(w.noEvent) + "</p>") + "</section>";
+}
+
+document.addEventListener("click", event => {
+  const pill = event.target.closest("[data-vkind]");
+  if (!pill) return;
+  VIVANT_KIND = pill.dataset.vkind;
+  renderVivant();
+});
 
 function vivantHealth(body, w) {
   const d = VIVANT.world || {};

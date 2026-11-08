@@ -124,5 +124,9 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
   - La courbe des enchères sur 48 h est tenue par le dashboard (un point toutes les 15 min), car le module n'envoie que la valeur du moment.
 - **Correctif d'amorçage** : le module ne crée `squidbot/` qu'en écrivant, et il n'écrit que si `watch.json` existe. Le dashboard crée donc le dossier, mais seulement dans un dossier de logs existant.
 - **Dossier** : `squidbotDir` dans dashboard.json (même rôle que `AiPlayerbot.CoaDataDir`). Vide, c'est `squidbot/` à côté de CoaBots.log, c'est-à-dire `LogsDir`.
-- **world.json** (CoA SquidBot) et **events.jsonl** (CoA Monde) : aucune branche ne les écrit encore. Les onglets Population et Santé restent en données factices.
+- **events.jsonl** : écrit par CoA Monde (coa-3.0-monde c881e5c4, pas encore dans un build), activé par `AiPlayerbot.CoaWorld.Events.Enable = 1`.
+  - Le module l'écrit toujours quand l'option est active, sans tenir compte de watch.json, puisque c'est un journal.
+  - Valeurs de `kind` chez Monde : invasion, rush, server_first, guild, stuck, unstuck. Les valeurs error, boss, wipe et order sont réservées à DC et à Economie.
+  - Le dashboard lit les 200 dernières lignes, en complétant par `events.jsonl.1` juste après une rotation, et les affiche dans l'onglet **Journal**, filtrable par `kind`.
+- **world.json** (CoA SquidBot) : le Pilote l'a demandé à SquidBot. Les onglets Population et Santé restent en données factices d'ici là.
 - **groups.json** et **runs.jsonl** attendent le plan DC 3.0.
