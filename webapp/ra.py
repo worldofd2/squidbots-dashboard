@@ -20,17 +20,50 @@ class RaError(Exception):
 
 
 def account(root):
-    """Read RA credentials from Linux configuration."""
+    """Read RA credentials based on operating system."""
 
-    config_file = "/etc/coa-dashboard/ra.json"
+    if os.name == "posix":
+        # Linux / Ubuntu
+        config_file = "/etc/coa-dashboard/ra.json"
 
-    with open(config_file, "r", encoding="utf-8") as handle:
-        settings = json.load(handle)
+    elif os.name == "nt":
+        # Windows / CoA Bots repack
+        config_file = os.path.join(
+            root, "Settings", "repack.json"
+        )
+
+    else:
+        raise RaError(
+            f"Unsupported operating system: {os.name}"
+        )
+
+    try:
+        with open(config_file, "r", encoding="utf-8-sig") as handle:
+            settings = json.load(handle)
+
+    except (OSError, ValueError) as error:
+        raise RaError(
+            f"Unable to read RA configuration '{config_file}': {error}"
+        ) from error
+
+    if os.name == "posix":
+        # Require explicitly configured credentials on Linux.
+        username = settings.get("raUsername")
+        password = settings.get("raPassword")
+
+        if not username or not password:
+            raise RaError(
+                "RA username or password missing from Linux configuration."
+            )
+    else:
+        # Preserve original Windows repack defaults.
+        username = settings.get("raUsername") or "local"
+        password = settings.get("raPassword") or "local"
 
     return (
-        str(settings["raUsername"]),
-        str(settings["raPassword"]),
-        int(settings.get("raPort", 3443))
+        str(username),
+        str(password),
+        int(settings.get("raPort") or 3443)
     )
 
 
