@@ -119,3 +119,15 @@ class CpuMeter:
 
 def cores():
     return os.cpu_count() or 1
+
+# Linux implementation: overrides the Windows-only
+# functions while preserving Windows compatibility.
+if os.name == "posix" and os.path.isdir("/proc"):
+    from .procinfo_linux import (
+        pids,
+        path_of,
+        find,
+        alive,
+        CpuMeter,
+        cores,
+    )

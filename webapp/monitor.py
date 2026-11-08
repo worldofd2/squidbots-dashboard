@@ -112,24 +112,60 @@ class Monitor:
         self._coa_ra = None
 
     # ---- the worldserver of each realm
+    
     def _pid(self, realm, others):
-        """The realm's worldserver pid: the one the launcher or manage.py recorded, when it is still a worldserver;
-        for the CoA realm without a record, the worldserver of this repack that no other realm claims."""
+        """Find the running worldserver on Windows or Linux."""
+
+        exe_name = (
+            "worldserver.exe"
+            if os.name == "nt"
+            else "worldserver"
+        )
+
+        # Check a recorded PID first, if one exists.
         pid = realm.pid()
-        if pid and procinfo.path_of(pid).lower().endswith("worldserver.exe"):
-            return pid
+        if pid:
+            path = procinfo.path_of(pid)
+            if os.path.basename(path).lower() == exe_name:
+                return pid
+
         if realm.key != "coa":
             return 0
-        running = procinfo.find("worldserver.exe")
+
+        running = procinfo.find(exe_name)
+
+        # Match a specifically configured executable.
         if self.coa_exe:
+            expected = os.path.normcase(
+                os.path.abspath(self.coa_exe)
+            )
+
             for candidate, path in running.items():
-                if path.lower() == self.coa_exe:
+                actual = os.path.normcase(
+                    os.path.abspath(path)
+                )
+                if actual == expected:
                     return candidate
+
             return 0
-        root = os.path.normcase(os.path.abspath(self.root or "")) + os.sep
+
+        # Otherwise find the worldserver inside the
+        # configured CoA installation directory.
+        root = os.path.normcase(
+            os.path.abspath(self.root or "")
+        )
+
         for candidate, path in running.items():
-            if candidate not in others and os.path.normcase(path).startswith(root):
+            actual = os.path.normcase(
+                os.path.abspath(path)
+            )
+
+            if (
+                candidate not in others
+                and os.path.commonpath([root, actual]) == root
+            ):
                 return candidate
+
         return 0
 
     def _ra_port(self, realm):
