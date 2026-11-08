@@ -71,13 +71,21 @@ Les activités viennent de la stratégie active (même table que `ActionTasks`).
 ```
 Les montants sont en cuivre. `low/usual/high` sont les bandes de prix du §2 de la vision.
 
-### groups.json et runs.jsonl
+### groups.json et runs.jsonl (champs de Dungeon Clear, arrêtés le 08/11)
+Les noms suivent le JSONL du banc DC (`bin/dc_testruns.jsonl`, schéma 19) : camelCase, dates en ms. `dungeon` est la clé courte de DC (`sfk`, `rfc`, `dm-east`…), et `difficulty` vaut 0 (normal), 1 (héroïque) ou 2 (mythique).
 ```json
-{ "running": [{"run": 9812, "dungeon": 36, "bots": 5, "players": 0, "started": 1762599100, "boss_done": 2, "boss_total": 5, "wipes": 0}],
-  "today": {"runs": 42, "cleared": 37, "wipes": 11, "boss_kills": 168},
-  "by_dungeon": [{"dungeon": 36, "runs": 9, "cleared": 9, "median_s": 1420, "best_s": 1180, "wipes": 1}] }
+{ "running": [{"runId": 9812, "dungeon": "sfk", "dungeonName": "Shadowfang Keep", "difficulty": 0, "bots": 5, "players": 0,
+               "startedAtMs": 1762599100000, "bossesKilled": 2, "bossesTotal": 5, "wipes": 0}],
+  "today": {"runs": 42, "cleared": 37, "wipes": 11, "bossKills": 168},
+  "byDungeon": [{"dungeon": "sfk", "dungeonName": "Shadowfang Keep", "runs": 9, "cleared": 9, "medianS": 1420, "bestS": 1180, "wipes": 1}] }
 ```
-Une ligne de `runs.jsonl` : `{"run":9812,"dungeon":36,"start":…,"end":…,"result":"clear|wipe|abandon","bosses":[{"id":639,"t":312}],"wipes":1,"group":["Arwen",…]}`. C'est le format du banc DC, joué ici en jeu réel, pour que les deux se comparent.
+- `running` : l'état live par groupe que DC exposera ; le module le lit toutes les 15 s.
+- `today` et `byDungeon` : agrégats que le module calcule à partir de `runs.jsonl`.
+
+Une ligne de `runs.jsonl` par run `dc on` réel. C'est un sous-ensemble de la ligne du banc, plus `wipes` et `players` :
+`{"runId":…, "dungeon":"sfk", "dungeonName":…, "difficulty":0, "startedAtMs":…, "endedAtMs":…, "durationS":…, "result":"clear|wipe|aborted|setup_failed", "bossesKilled":…, "bossesTotal":…, "bossTimeline":[{"t":312,"entry":3914,"name":"…","via":"…"}], "wipes":1, "comp":[{"name","class","spec","role"}], "players":["…"]}`
+- Le dashboard lit lui-même les 8 dernières lignes, depuis la fin du fichier, pour la liste « Derniers runs ».
+- Aujourd'hui, DC n'écrit ces lignes que pour les runs de banc (`dc test`). La ligne en jeu réel et l'état live sont au plan DC 3.0.
 
 ### events.jsonl
 `{"at":…,"kind":"error|stuck|unstuck|boss|wipe|order","bot":"…","text":"…"}`. Le dashboard le lit en `tail` (comme Chat.log aujourd'hui) et l'affiche en direct.
@@ -97,7 +105,7 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
   - `stuck` vaut `null` jusqu'au détecteur 3.0 ; `souls` et `surname` valent `null` jusqu'à L1.
   - `errors_10m` est **retiré** : les entrées `error` de `events.jsonl` le remplacent.
 - `economy.json` (60 s, seulement s'il est surveillé) fait une passe sur l'hôtel des ventes. `gold_*` vient d'une requête asynchrone mise en cache. Les bandes de prix, `crafts_24h` et `orders` restent des tableaux vides jusqu'à l'économie 3.0.
-- `groups.json` et `runs.jsonl` : l'état des runs appartient à Dungeon Clear. Le module n'écrit que ce que DC expose, au format du banc DC.
+- `groups.json` et `runs.jsonl` : l'état des runs appartient à Dungeon Clear. Le module n'écrit que ce que DC expose ; les champs, arrêtés avec DC, sont au §3.
 - Réglages : `AiPlayerbot.CoaDataDir` (`""` = `<Logs>/squidbot`) et `AiPlayerbot.CoaDataFiles = 1` (`0` coupe tout, y compris `runs.jsonl`).
 
 ## 7. Maquette (branche `feature/vivant-3.0` du dépôt dashboard)

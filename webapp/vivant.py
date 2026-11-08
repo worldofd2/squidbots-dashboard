@@ -87,7 +87,33 @@ class Vivant:
                 elif data.get("at") and now - float(data["at"]) > 3 * data.get("every", 10):
                     out["stale"].append(topic)
                 out[topic] = data
+            last = self._last_runs()
+            if last is not None:
+                out["groups"] = dict(out["groups"], last=last)
             return out
+
+    def _last_runs(self, keep=8):
+        """The newest lines of runs.jsonl (one per finished run, Dungeon Clear's record), newest first; None without it."""
+        path = os.path.join(self.dir, "runs.jsonl")
+        try:
+            with open(path, "rb") as handle:
+                handle.seek(0, os.SEEK_END)
+                start = max(0, handle.tell() - 64 * 1024)
+                handle.seek(start)
+                lines = handle.read().decode("utf-8", errors="replace").splitlines()
+            if start:
+                lines = lines[1:]   # cut in the middle of a line
+        except OSError:
+            return None
+        rows = []
+        for line in reversed(lines):
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                continue
+            if len(rows) == keep:
+                break
+        return rows
 
 
 # ------------------------------------------------------------------ made-up figures ----
@@ -100,8 +126,8 @@ ZONES = [(1519, "Stormwind City", True), (1637, "Orgrimmar", True), (1537, "Iron
          (1657, "Darnassus", True), (1497, "Undercity", True), (12, "Elwynn Forest", False), (14, "Durotar", False),
          (40, "Westfall", False), (17, "The Barrens", False), (11, "Wetlands", False), (33, "Stranglethorn Vale", False),
          (45, "Arathi Highlands", False), (440, "Tanaris", False), (361, "Felwood", False), (139, "Eastern Plaguelands", False)]
-DUNGEONS = [(36, "The Deadmines", 5), (43, "Wailing Caverns", 8), (47, "Razorfen Kraul", 6), (189, "Scarlet Monastery", 4),
-            (209, "Zul'Farrak", 8), (349, "Maraudon", 7), (230, "Blackrock Depths", 15), (329, "Stratholme", 10)]
+DUNGEONS = [("dm", 36, "The Deadmines", 5), ("wc", 43, "Wailing Caverns", 8), ("rfk", 47, "Razorfen Kraul", 6), ("sm-cath", 189, "Scarlet Monastery", 4),
+            ("zf", 209, "Zul'Farrak", 8), ("mara", 349, "Maraudon", 7), ("brd", 230, "Blackrock Depths", 15), ("strat", 329, "Stratholme", 10)]
 NAMES = ["Arwen", "Thorgal", "Brienne", "Kaelis", "Morwen", "Drakkar", "Ysolde", "Grimbald", "Lyria", "Barok", "Seraphine", "Torvald"]
 
 
@@ -161,21 +187,33 @@ def _demo_economy(now):
 
 
 def _demo_groups(now):
+    """Field names follow Dungeon Clear's run records (bin/dc_testruns.jsonl): camelCase, times in ms."""
     r = _rng(now, 3)
+    ms = int(now * 1000)
     running = []
-    for d, name, bosses in r.sample(DUNGEONS, 3):
-        done = r.randint(0, bosses - 1)
-        running.append({"run": r.randint(9000, 9999), "dungeon": d, "name": name, "bots": 5, "players": r.choice([0, 0, 1]),
-                        "started": int(now - r.randint(300, 2400)), "boss_done": done, "boss_total": bosses, "wipes": r.choice([0, 0, 1, 2])})
-    by = [{"dungeon": d, "name": n, "runs": r.randint(2, 11), "median_s": b * 240 + r.randint(-120, 300), "best_s": b * 200, "wipes": r.randint(0, 4)}
-          for d, n, b in DUNGEONS]
+    for key, map_id, name, bosses in r.sample(DUNGEONS, 3):
+        running.append({"runId": r.randint(9000, 9999), "dungeon": key, "dungeonName": name, "mapId": map_id, "difficulty": r.choice([0, 0, 1]),
+                        "bots": 5, "players": r.choice([0, 0, 1]), "startedAtMs": ms - r.randint(300, 2400) * 1000,
+                        "bossesKilled": r.randint(0, bosses - 1), "bossesTotal": bosses, "wipes": r.choice([0, 0, 1, 2])})
+    by = [{"dungeon": key, "dungeonName": n, "runs": r.randint(2, 11), "medianS": b * 240 + r.randint(-120, 300), "bestS": b * 200, "wipes": r.randint(0, 4)}
+          for key, _, n, b in DUNGEONS]
     for row in by:
         row["cleared"] = max(0, row["runs"] - r.randint(0, 2))
-    last = [{"name": r.choice(DUNGEONS)[1], "end": int(now - i * 700 - r.randint(0, 600)), "result": r.choice(["clear", "clear", "clear", "wipe", "abandon"]),
-             "time_s": r.randint(900, 2600), "wipes": r.randint(0, 2), "group": r.sample(NAMES, 5)} for i in range(8)]
-    return {"running": running, "by_dungeon": by, "last": last,
+    last = []
+    for i in range(8):
+        key, map_id, name, bosses = r.choice(DUNGEONS)
+        end = ms - (i * 700 + r.randint(0, 600)) * 1000
+        took = r.randint(900, 2600)
+        result = r.choice(["clear", "clear", "clear", "wipe", "aborted"])
+        killed = bosses if result == "clear" else r.randint(0, bosses - 1)
+        last.append({"runId": 9000 - i, "dungeon": key, "dungeonName": name, "difficulty": r.choice([0, 0, 1]), "startedAtMs": end - took * 1000,
+                     "endedAtMs": end, "durationS": took, "result": result, "bossesKilled": killed, "bossesTotal": bosses, "wipes": r.randint(0, 2),
+                     "comp": [{"name": n, "class": c, "role": role} for n, c, role in
+                              zip(r.sample(NAMES, 5), ("Warrior", "Priest", "Mage", "Rogue", "Hunter"), ("tank", "heal", "dps", "dps", "dps"))],
+                     "players": r.choice([[], [], ["Squid"]])})
+    return {"running": running, "byDungeon": by, "last": last,
             "today": {"runs": sum(b["runs"] for b in by), "cleared": sum(b["cleared"] for b in by),
-                      "wipes": sum(b["wipes"] for b in by), "boss_kills": sum(b["cleared"] for b in by) * 6},
+                      "wipes": sum(b["wipes"] for b in by), "bossKills": sum(b["cleared"] for b in by) * 6},
             "at": int(now), "every": 15, "buildUs": 90}
 
 

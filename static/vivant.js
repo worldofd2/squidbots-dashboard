@@ -20,7 +20,7 @@ const VIVANT_WORDS = {
     by: "by", forWhom: "for", profit: "profit", auctionsWeek: "Auctions, 48 h",
     runsToday: "Runs today", cleared: "Cleared", wipes: "Wipes", bossKills: "Bosses killed", running: "Running now",
     noRun: "No group in a dungeon right now.", dungeon: "Dungeon", runs: "Runs", median: "Median", best: "Best", started: "started",
-    bosses: "bosses", lastRuns: "Last runs", result: { clear: "cleared", wipe: "wiped", abandon: "abandoned" }, perDungeon: "By dungeon",
+    bosses: "bosses", lastRuns: "Last runs", result: { clear: "cleared", wipe: "wiped", aborted: "aborted", setup_failed: "failed to start" }, difficulty: ["", "heroic", "mythic"], perDungeon: "By dungeon",
     tick: "World tick", tickFoot: (p, m) => "p95 " + p + " ms · max " + m + " ms", botsCpu: "Bots per tick", botsCpuFoot: p => "p95 " + p + " ms",
     build: "Snapshot cost", buildFoot: "on the world thread, all files", strategies: "Cost by strategy, microseconds per tick",
     stuckList: "Stuck bots", noStuck: "No bot is stuck.", since: "since", tickChart: "Tick (ms), 6 h", botsChart: "Bots per tick (ms), 6 h",
@@ -43,7 +43,7 @@ const VIVANT_WORDS = {
     by: "par", forWhom: "pour", profit: "bénéfice", auctionsWeek: "Enchères, 48 h",
     runsToday: "Runs du jour", cleared: "Terminés", wipes: "Wipes", bossKills: "Boss tués", running: "En cours",
     noRun: "Aucun groupe en donjon pour l'instant.", dungeon: "Donjon", runs: "Runs", median: "Médiane", best: "Record", started: "commencé",
-    bosses: "boss", lastRuns: "Derniers runs", result: { clear: "terminé", wipe: "wipe", abandon: "abandonné" }, perDungeon: "Par donjon",
+    bosses: "boss", lastRuns: "Derniers runs", result: { clear: "terminé", wipe: "wipe", aborted: "abandonné", setup_failed: "échec au départ" }, difficulty: ["", "héroïque", "mythique"], perDungeon: "Par donjon",
     tick: "Tick du monde", tickFoot: (p, m) => "p95 " + p + " ms · max " + m + " ms", botsCpu: "Bots par tick", botsCpuFoot: p => "p95 " + p + " ms",
     build: "Coût des snapshots", buildFoot: "sur le thread monde, tous fichiers", strategies: "Coût par stratégie, microsecondes par tick",
     stuckList: "Bots coincés", noStuck: "Aucun bot coincé.", since: "depuis", tickChart: "Tick (ms), 6 h", botsChart: "Bots par tick (ms), 6 h",
@@ -142,18 +142,23 @@ function vivantEconomy(body, w) {
 }
 
 function vivantGroups(body, w) {
+  // Field names are Dungeon Clear's (runId, dungeonName, startedAtMs, bossesKilled…): see LIAISON-3.0.md.
   const d = VIVANT.groups || {};
-  const t = d.today || {}, now = Date.now() / 1000;
-  const running = (d.running || []).map(r => '<div class="zone-row"><div><strong>' + esc(r.name || "#" + r.dungeon) + '</strong><div class="meta">' +
-    r.bots + " bots" + (r.players ? " + " + r.players + " " + esc(w.players.toLowerCase()).replace(/s$/, r.players > 1 ? "s" : "") : "") + " · " + esc(w.started) + " " + esc(ago(r.started)) +
-    (r.wipes ? " · " + r.wipes + " " + esc(w.wipes.toLowerCase()) : "") + '</div></div><div class="bar" title="' + r.boss_done + "/" + r.boss_total + '"><i style="width:' +
-    (r.boss_done / Math.max(1, r.boss_total) * 100) + '%"></i></div><div class="meta">' + r.boss_done + "/" + r.boss_total + " " + esc(w.bosses) + "</div></div>").join("");
-  const dungeons = (d.by_dungeon || []).map(b => "<tr><td>" + esc(b.name || "#" + b.dungeon) + '</td><td class="r">' + b.runs + '</td><td class="r">' + b.cleared +
-    '</td><td class="r">' + b.wipes + '</td><td class="r">' + duration(b.median_s) + '</td><td class="r">' + duration(b.best_s) + "</td></tr>").join("");
-  const last = (d.last || []).map(r => "<tr><td>" + esc(r.name) + '<div class="meta">' + esc(r.group.join(", ")) + "</div></td><td>" + esc(w.result[r.result] || r.result) +
-    '</td><td class="r">' + duration(r.time_s) + '</td><td class="r">' + r.wipes + '</td><td class="r meta">' + esc(ago(r.end)) + "</td></tr>").join("");
+  const t = d.today || {};
+  const sec = msTime => msTime / 1000;
+  const label = r => esc(r.dungeonName || r.dungeon) + (r.difficulty ? ' <span class="meta">' + esc(w.difficulty[r.difficulty] || "") + "</span>" : "");
+  const running = (d.running || []).map(r => '<div class="zone-row"><div><strong>' + label(r) + '</strong><div class="meta">' +
+    r.bots + " bots" + (r.players ? " + " + r.players + " " + esc(w.players.toLowerCase()).replace(/s$/, r.players > 1 ? "s" : "") : "") + " · " +
+    esc(w.started) + " " + esc(ago(sec(r.startedAtMs))) + (r.wipes ? " · " + r.wipes + " " + esc(w.wipes.toLowerCase()) : "") +
+    '</div></div><div class="bar" title="' + r.bossesKilled + "/" + r.bossesTotal + '"><i style="width:' + (r.bossesKilled / Math.max(1, r.bossesTotal) * 100) +
+    '%"></i></div><div class="meta">' + r.bossesKilled + "/" + r.bossesTotal + " " + esc(w.bosses) + "</div></div>").join("");
+  const dungeons = (d.byDungeon || []).map(b => "<tr><td>" + esc(b.dungeonName || b.dungeon) + '</td><td class="r">' + b.runs + '</td><td class="r">' + b.cleared +
+    '</td><td class="r">' + b.wipes + '</td><td class="r">' + duration(b.medianS) + '</td><td class="r">' + duration(b.bestS) + "</td></tr>").join("");
+  const last = (d.last || []).map(r => "<tr><td>" + label(r) + '<div class="meta">' + esc((r.comp || []).map(c => c.name).concat(r.players || []).join(", ")) +
+    "</div></td><td>" + esc(w.result[r.result] || r.result) + ' <span class="meta">' + r.bossesKilled + "/" + r.bossesTotal + '</span></td><td class="r">' +
+    duration(r.durationS) + '</td><td class="r">' + (r.wipes || 0) + '</td><td class="r meta">' + esc(ago(sec(r.endedAtMs))) + "</td></tr>").join("");
   body.innerHTML = topicError(d) + vivantFigures([[w.runsToday, num(t.runs), ""], [w.cleared, num(t.cleared), Math.round(t.cleared / Math.max(1, t.runs) * 100) + " %"],
-    [w.wipes, num(t.wipes), ""], [w.bossKills, num(t.boss_kills), ""], [w.running, num((d.running || []).length), ""], [w.busy, num((d.running || []).reduce((s, r) => s + r.bots, 0)), "bots"]]) +
+    [w.wipes, num(t.wipes), ""], [w.bossKills, num(t.bossKills), ""], [w.running, num((d.running || []).length), ""], [w.busy, num((d.running || []).reduce((s, r) => s + r.bots, 0)), "bots"]]) +
     '<section class="card"><h2>' + esc(w.running) + "</h2>" + (running || '<p class="empty">' + esc(w.noRun) + "</p>") + "</section>" +
     '<div class="grid two"><section class="card"><h2>' + esc(w.perDungeon) + '</h2><div class="scroll"><table><thead><tr><th>' + esc(w.dungeon) + '</th><th class="r">' +
       esc(w.runs) + '</th><th class="r">' + esc(w.cleared) + '</th><th class="r">' + esc(w.wipes) + '</th><th class="r">' + esc(w.median) + '</th><th class="r">' +
