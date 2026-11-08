@@ -1,6 +1,6 @@
 # Liaison SquidBot 3.0 → SquidBots Dashboard (proposition CoA Dashboard, 08/11)
 
-Réponse à VISION-3.0 §4 bis. Le Builder code le côté module.
+Réponse à VISION-3.0 §4 bis. Format validé par le Pilote le 08/11. Le côté module sera codé par **CoA SquidBot** (D:\CoA-SquidBot) après le lot L1 : c'est elle l'interlocutrice côté module. Le Builder garde les bancs et les builds.
 
 **Statut (08/11)** : principe accepté par le Builder, avec les modifications du §6 (elles priment sur le reste du document). Il lancera le module après le banc CPU A/B (chantier 0), sur l'ordre du Pilote. Non surveillé, le module doit rester dans le bruit de mesure. Les champs de `groups.json` et `runs.jsonl` restent à arrêter avec CoA Dungeon Clear.
 
@@ -51,14 +51,15 @@ Toujours dans `<logs>/squidbot/`. Chaque fichier a la même enveloppe :
 { "online": 487, "players": 2,
   "zones":  [{"map": 0, "zone": 1519, "bots": 61, "capital": true}],
   "activities": {"quest": 212, "grind": 64, "city": 88, "travel": 41, "fish": 9, "pvp": 23, "dungeon": 35, "idle": 15},
-  "personalities": {"merchant": 74, "crafter": 51, "adventurer": 190, "explorer": 62, "duelist": 40, "homebody": 70},
+  "souls": {"lazy": 85, "quester": 160, "wanderer": 94, "trader": 76, "pvp": 57},
+  "surname": {"mode": 2, "list_size": 64, "top": [{"name": "Stormhand", "bots": 12}]},
   "health": { "tick_ms": {"avg": 38, "p95": 61, "max": 140},
               "bots_us_per_tick": {"avg": 9200, "p95": 15800},
               "by_strategy_us": [{"name": "rpg", "us": 3100}, {"name": "travel", "us": 1900}],
               "stuck": [{"guid": 1234, "name": "Arwen", "map": 1, "x": 0, "y": 0, "z": 0, "since": 1762599700, "why": "no path"}],
               "errors_10m": 3 } }
 ```
-Les activités viennent de la stratégie active (même table que `ActionTasks`). Les personnalités sont les caractères 3.0 (patience, épargne…), regroupés en profils.
+Les activités viennent de la stratégie active (même table que `ActionTasks`). `souls` donne le nombre de bots par archétype `CoaArchetype` (Lazy, Quester, Wanderer, Trader, PvP ; voir D:\CoA-IALLM\docs\ACCROCHES-LLM-3.0.md). `surname` reprend `AiPlayerbot.CoaBotSurname` (0 = aucun, 1 = « Bot », 2 = liste), la taille de la liste et, en mode 2, les noms les plus portés. Les deux arrivent avec L1 et valent `null` d'ici là.
 
 ### economy.json
 ```json
@@ -93,7 +94,7 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
 - L'écriture passe par `.tmp` puis `MoveFileEx(REPLACE_EXISTING)`. Si le dashboard tombe sur une violation de partage, il réessaie une fois après 100 ms (c'est fait dans `webapp/vivant.py`).
 - `world.json` sort de la même passe que `bot-status.json`, sans scan en plus. `tick_ms` vient des statistiques du cœur.
   - `bots_us_per_tick` et `by_strategy_us` valent `null` sans PerfMon.
-  - `stuck` vaut `null` jusqu'au détecteur 3.0, et `personalities` jusqu'à la fonction 3.0.
+  - `stuck` vaut `null` jusqu'au détecteur 3.0 ; `souls` et `surname` valent `null` jusqu'à L1.
   - `errors_10m` est **retiré** : les entrées `error` de `events.jsonl` le remplacent.
 - `economy.json` (60 s, seulement s'il est surveillé) fait une passe sur l'hôtel des ventes. `gold_*` vient d'une requête asynchrone mise en cache. Les bandes de prix, `crafts_24h` et `orders` restent des tableaux vides jusqu'à l'économie 3.0.
 - `groups.json` et `runs.jsonl` : l'état des runs appartient à Dungeon Clear. Le module n'écrit que ce que DC expose, au format du banc DC.

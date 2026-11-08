@@ -118,7 +118,10 @@ def _demo_world(now):
     tick = r.randint(32, 48)
     return {"online": online, "players": r.randint(0, 3), "zones": zones,
             "activities": {k: round(online * v * r.uniform(.85, 1.15)) for k, v in acts.items()},
-            "personalities": {"adventurer": 190, "homebody": 70, "merchant": 74, "explorer": 62, "crafter": 51, "duelist": 40},
+            "souls": {"lazy": round(online * .18), "quester": round(online * .34), "wanderer": round(online * .2),
+                      "trader": round(online * .16), "pvp": round(online * .12)},
+            "surname": {"mode": 2, "list_size": 64, "top": [{"name": n, "bots": r.randint(6, 14)} for n in
+                        ("Stormhand", "Ashvale", "Ironbrook", "Duskmantle", "Emberfall", "Greywater", "Thornfield", "Brightwood")]},
             "health": {"tick_ms": {"avg": tick, "p95": tick + r.randint(15, 30), "max": tick + r.randint(60, 120)},
                        "bots_us_per_tick": {"avg": online * 19, "p95": online * 32},
                        "by_strategy_us": [{"name": n, "us": u} for n, u in

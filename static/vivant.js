@@ -8,9 +8,11 @@ const VIVANT_WORDS = {
     demo: t => "Made-up figures for " + t + ": SquidBot does not write these files yet (CoA Bots 3.0).",
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
-    zones: "Where they are", capital: "capital", activities: "What they do", personalities: "Personalities",
+    zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)",
+    surnameMode: ["None", "“Bot”", "From the list"], surnameHelp: ["Bots show their first name only.", "Every bot is named “First Bot” (as in 2.x).", n => "A family name per bot, drawn once from a list of " + n + "."],
+    mostWorn: "Most worn",
     act: { quest: "Questing", grind: "Grinding", city: "In town", travel: "Travelling", fish: "Fishing", pvp: "PvP", dungeon: "Dungeon", idle: "Idle" },
-    pers: { adventurer: "Adventurer", homebody: "Homebody", merchant: "Merchant", explorer: "Explorer", crafter: "Crafter", duelist: "Duelist" },
+    soul: { lazy: "Lazy", quester: "Quester", wanderer: "Wanderer", trader: "Trader", pvp: "PvP" },
     auctions: "Auctions", goldAll: "Gold in circulation", goldBots: "Held by bots", sold24: "Sold, 24 h", crafted24: "Crafted, 24 h", ordersOpen: "Open orders",
     categories: "Prices by category", cat: "Category", avg: "Average", band: "Low · usual · high", volume: "Sold 24 h",
     topSales: "Best sellers, 24 h", crafts: "Crafts, 24 h", orders: "Orders to crafting bots", item: "Item", qty: "Qty", gold: "Gold",
@@ -29,9 +31,11 @@ const VIVANT_WORDS = {
     demo: t => "Données factices pour " + t + " : SquidBot n'écrit pas encore ces fichiers (CoA Bots 3.0).",
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
-    zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", personalities: "Personnalités",
+    zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)",
+    surnameMode: ["Aucun", "« Bot »", "Liste"], surnameHelp: ["Les bots ne montrent que leur prénom.", "Chaque bot s'appelle « Prénom Bot » (comme en 2.x).", n => "Un nom de famille par bot, tiré une fois pour toutes d'une liste de " + n + "."],
+    mostWorn: "Les plus portés",
     act: { quest: "En quête", grind: "Farm", city: "En ville", travel: "En voyage", fish: "Pêche", pvp: "JcJ", dungeon: "Donjon", idle: "Inactifs" },
-    pers: { adventurer: "Aventurier", homebody: "Casanier", merchant: "Marchand", explorer: "Explorateur", crafter: "Artisan", duelist: "Duelliste" },
+    soul: { lazy: "Paresseux", quester: "Quêteur", wanderer: "Flâneur", trader: "Commerçant", pvp: "JcJ" },
     auctions: "Enchères", goldAll: "Or en circulation", goldBots: "Détenu par les bots", sold24: "Vendus, 24 h", crafted24: "Fabriqués, 24 h", ordersOpen: "Commandes en cours",
     categories: "Prix par catégorie", cat: "Catégorie", avg: "Moyen", band: "Bas · usuel · haut", volume: "Vendus 24 h",
     topSales: "Meilleures ventes, 24 h", crafts: "Artisanat, 24 h", orders: "Commandes aux bots artisans", item: "Objet", qty: "Qté", gold: "Or",
@@ -48,6 +52,7 @@ const VIVANT_WORDS = {
 };
 const VW = () => VIVANT_WORDS[lang] || VIVANT_WORDS.en;
 let VIVANT = null, VIVANT_TAB = "population", vivantTimer = null;
+const SOUL_COLORS = { lazy: "var(--text-muted)", quester: "var(--gold)", wanderer: "#7d9cc4", trader: "var(--accent)", pvp: "var(--horde)" };
 const ACT_COLORS = { quest: "var(--gold)", grind: "#c96b3a", city: "var(--accent)", travel: "#7d9cc4", fish: "#3fa7d6",
   pvp: "var(--horde)", dungeon: "#b36df2", idle: "var(--text-muted)" };
 
@@ -88,13 +93,22 @@ function vivantPopulation(body, w) {
     [w.stuck, h.stuck ? num(h.stuck.length) : "–", h.stuck ? "" : w.soon], [w.zonesUsed, num(zones.length), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
-    '<h2 class="later">' + esc(w.personalities) + '</h2><div id="vvPers"></div></section></div>';
+    '<h2 class="later">' + esc(w.souls) + '</h2><div class="splits" id="vvSouls"></div>' +
+    '<h2 class="later">' + esc(w.surnames) + '</h2><div id="vvSurname"></div></section></div>';
   rankedList(document.getElementById("vvZones"), zones.map(z => ({ name: z.name || "#" + z.zone, bots: z.bots, capital: z.capital })),
     { value: r => r.bots, unit: "bots", line2: r => (r.capital ? w.capital : "") });
   splitBar(document.getElementById("vvActs"), Object.keys(acts).map(k => ({ label: w.act[k] || k, count: acts[k], color: ACT_COLORS[k] || "var(--gold)" })));
-  const pers = d.personalities;
-  if (!pers) { document.getElementById("vvPers").innerHTML = '<p class="empty">' + esc(w.soon) + "</p>"; return; }
-  rankedList(document.getElementById("vvPers"), Object.keys(pers).sort((a, b) => pers[b] - pers[a]).map(k => ({ name: w.pers[k] || k, bots: pers[k] })),
+  const souls = d.souls, soulHost = document.getElementById("vvSouls");
+  if (!souls) soulHost.innerHTML = '<p class="empty">' + esc(w.soonL1) + "</p>";
+  else splitBar(soulHost, Object.keys(SOUL_COLORS).map(k => ({ label: w.soul[k], count: souls[k] || 0, color: SOUL_COLORS[k] })));
+  const sn = d.surname, snHost = document.getElementById("vvSurname");
+  if (!sn) { snHost.innerHTML = '<p class="empty">' + esc(w.soonL1) + "</p>"; return; }
+  const help = w.surnameHelp[sn.mode];
+  snHost.innerHTML = '<div class="tabs" aria-label="' + esc(w.surnames) + '">' + w.surnameMode.map((label, mode) =>
+    '<button type="button" disabled aria-selected="' + (mode === sn.mode) + '">' + esc(label) + "</button>").join("") + "</div>" +
+    '<p class="meta">' + esc(typeof help === "function" ? help(sn.list_size || 0) : help) + "</p>" +
+    (sn.mode === 2 && sn.top && sn.top.length ? '<p class="meta"><strong>' + esc(w.mostWorn) + '</strong></p><div id="vvSurnameTop"></div>' : "");
+  if (sn.mode === 2 && sn.top && sn.top.length) rankedList(document.getElementById("vvSurnameTop"), sn.top.slice().sort((a, b) => b.bots - a.bots),
     { value: r => r.bots, unit: "bots", line2: () => "" });
 }
 
