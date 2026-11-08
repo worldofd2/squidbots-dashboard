@@ -17,6 +17,8 @@ MAJOR = 1           # schema version this page understands: squidbot.<topic>/1
 WATCH_EVERY = 30    # seconds between two writes of watch.json
 HISTORY_EVERY = 15 * 60
 HISTORY_KEEP = 48 * 3600
+WORLD_EVERY = 5 * 60
+WORLD_KEEP = 6 * 3600
 
 
 class Vivant:
@@ -29,6 +31,7 @@ class Vivant:
             self.history = json.load(open(self.history_file, encoding="utf-8"))
         except (OSError, ValueError):
             self.history = []
+        self.world_history = []     # tick and bots online, a point per 5 min over 6 h (memory only)
         # The module's AiPlayerbot.CoaDataDir, by default <LogsDir>/squidbot: the folder of the realm's CoaBots.log.
         self.dir = (ctx.realm.key == "coa" and squidbot_dir) or os.path.join(os.path.dirname(ctx.coa_log), "squidbot")
         self.lock = threading.Lock()
@@ -107,6 +110,11 @@ class Vivant:
                 self._name_items(out["economy"])
                 out["economy"] = dict(out["economy"], categories=by_class(out["economy"].get("categories") or []))
                 out["economy"] = dict(out["economy"], history=self._remember(out["economy"]))
+            if "world" not in out["demo"] and not out["world"].get("error"):
+                world = out["world"]
+                health = dict(world.get("health") or {})
+                health.setdefault("history", self._remember_world(world))
+                out["world"] = dict(world, health=health)
             events = self._events()
             if events is None:
                 events = _demo_events(now)
@@ -129,6 +137,13 @@ class Vivant:
             except OSError:
                 pass
         return self.history
+
+    def _remember_world(self, world):
+        at = world.get("at")
+        tick = ((world.get("health") or {}).get("tick_ms") or {}).get("avg")
+        if at and (not self.world_history or at - self.world_history[-1]["ts"] >= WORLD_EVERY):
+            self.world_history = [p for p in self.world_history if at - p["ts"] < WORLD_KEEP] +                 [{"ts": int(at), "tick": tick, "online": world.get("online")}]
+        return self.world_history
 
     def _name_items(self, economy):
         """The module gives item entries only: add their name and quality (one query for the entries not seen yet)."""
@@ -250,7 +265,7 @@ def _demo_world(now):
                                           [("rpg", 3100), ("travel", 1900), ("combat", 1700), ("city life", 900), ("loot", 600), ("economy", 400)]],
                        "stuck": stuck,
                        "history": [{"ts": int(now - i * 300), "tick": 36 + 8 * math.sin((now - i * 300) / 2400) + _rng(now - i * 300, 9).uniform(-3, 3),
-                                    "bots": online * 19 / 1000 * (1 + .1 * math.sin((now - i * 300) / 3000))} for i in range(72, -1, -1)]},
+                                    "online": round(online * (1 + .05 * math.sin((now - i * 300) / 3000)))} for i in range(72, -1, -1)]},
             "at": int(now), "every": 10, "buildUs": 410}
 
 

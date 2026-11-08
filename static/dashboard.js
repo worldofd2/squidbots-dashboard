@@ -532,7 +532,7 @@ function lineChart(host, points, options) {
   const settings = Object.assign({ unit: "", color: "var(--gold)" }, options);
   const value = settings.value, color = settings.color, unit = settings.unit;
   host.innerHTML = "";
-  if (!points || points.length < 2) { host.append(el("p", { class: "empty" }, W.chartWait)); return; }
+  if (!points || points.length < 2) { host.append(el("p", { class: "empty" }, settings.waiting || W.chartWait)); return; }
   const width = 720, height = 240, left = 56, right = 12, top = 14, bottom = 28;
   const xs = points.map(p => p.ts), ys = points.map(value);
   const x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs);

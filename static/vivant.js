@@ -23,9 +23,9 @@ const VIVANT_WORDS = {
     runsToday: "Runs today", cleared: "Cleared", wipes: "Wipes", bossKills: "Bosses killed", running: "Running now",
     noRun: "No group in a dungeon right now.", dungeon: "Dungeon", runs: "Runs", median: "Median", best: "Best", started: "started",
     bosses: "bosses", lastRuns: "Last runs", result: { clear: "cleared", wipe: "wiped", aborted: "aborted", setup_failed: "failed to start" }, difficulty: ["", "heroic", "mythic"], perDungeon: "By dungeon",
-    tick: "World tick", tickFoot: (p, m) => "p95 " + p + " ms · max " + m + " ms", botsCpu: "Bots per tick", botsCpuFoot: p => "p95 " + p + " ms",
+    tick: "World tick", tickFoot: (p, m) => (p === null ? "" : "p95 " + p + " ms · ") + (m === null ? "" : "max " + m + " ms"), botsCpu: "Bots per tick", botsCpuFoot: p => "p95 " + p + " ms",
     build: "Snapshot cost", buildFoot: "on the world thread, all files", strategies: "Cost by strategy, microseconds per tick",
-    stuckList: "Stuck bots", noStuck: "No bot is stuck.", since: "since", tickChart: "Tick (ms), 6 h", botsChart: "Bots per tick (ms), 6 h",
+    stuckList: "Stuck bots", noStuck: "No bot is stuck.", since: "since", tickChart: "Tick (ms), 6 h", botsChart: "Bots online, 6 h", curveWait: "The curve draws itself as readings come in: a point every 5 minutes while this page is open.",
     actionsSoon: "Commands to the bots (stop, resume, summon, unstuck) arrive with the module, through the world console.",
   },
   fr: {
@@ -48,9 +48,9 @@ const VIVANT_WORDS = {
     runsToday: "Runs du jour", cleared: "Terminés", wipes: "Wipes", bossKills: "Boss tués", running: "En cours",
     noRun: "Aucun groupe en donjon pour l'instant.", dungeon: "Donjon", runs: "Runs", median: "Médiane", best: "Record", started: "commencé",
     bosses: "boss", lastRuns: "Derniers runs", result: { clear: "terminé", wipe: "wipe", aborted: "abandonné", setup_failed: "échec au départ" }, difficulty: ["", "héroïque", "mythique"], perDungeon: "Par donjon",
-    tick: "Tick du monde", tickFoot: (p, m) => "p95 " + p + " ms · max " + m + " ms", botsCpu: "Bots par tick", botsCpuFoot: p => "p95 " + p + " ms",
+    tick: "Tick du monde", tickFoot: (p, m) => (p === null ? "" : "p95 " + p + " ms · ") + (m === null ? "" : "max " + m + " ms"), botsCpu: "Bots par tick", botsCpuFoot: p => "p95 " + p + " ms",
     build: "Coût des snapshots", buildFoot: "sur le thread monde, tous fichiers", strategies: "Coût par stratégie, microsecondes par tick",
-    stuckList: "Bots coincés", noStuck: "Aucun bot coincé.", since: "depuis", tickChart: "Tick (ms), 6 h", botsChart: "Bots par tick (ms), 6 h",
+    stuckList: "Bots coincés", noStuck: "Aucun bot coincé.", since: "depuis", tickChart: "Tick (ms), 6 h", botsChart: "Bots en ligne, 6 h", curveWait: "La courbe se dessine au fil des relevés : un point toutes les 5 minutes tant que cette page est ouverte.",
     actionsSoon: "Les commandes aux bots (arrêt, reprise, invocation, décoincer) arriveront avec le module, par la console du monde.",
   },
 };
@@ -209,10 +209,11 @@ document.addEventListener("click", event => {
 function vivantHealth(body, w) {
   const d = VIVANT.world || {};
   const h = d.health || {}, tick = h.tick_ms || {}, cpu = h.bots_us_per_tick || {};
-  const builds = ["world", "economy", "groups"].reduce((s, k) => s + ((VIVANT[k] || {}).buildUs || 0), 0);
+  const real = ["world", "economy", "groups"].filter(k => !(VIVANT.demo || []).includes(k));
+  const builds = real.reduce((s, k) => s + ((VIVANT[k] || {}).buildUs || 0), 0);
   const stuck = (h.stuck || []).map(s => "<tr><td>" + esc(s.name) + '</td><td class="meta">' + esc(s.zone || "") + "</td><td>" + esc(s.why) +
     '</td><td class="r meta">' + esc(w.since) + " " + esc(ago(s.since)) + "</td></tr>").join("");
-  body.innerHTML = topicError(d) + vivantFigures([[w.tick, num(tick.avg) + " ms", w.tickFoot(num(tick.p95), num(tick.max))],
+  body.innerHTML = topicError(d) + vivantFigures([[w.tick, tick.avg === null || tick.avg === undefined ? "–" : num(tick.avg) + " ms", w.tickFoot(tick.p95 == null ? null : num(tick.p95), tick.max == null ? null : num(tick.max))],
     [w.botsCpu, h.bots_us_per_tick ? (cpu.avg / 1000).toFixed(1) + " ms" : "–", h.bots_us_per_tick ? w.botsCpuFoot((cpu.p95 / 1000).toFixed(1)) : "PerfMon off"], [w.build, num(builds) + " µs", w.buildFoot],
     [w.stuck, h.stuck ? num(h.stuck.length) : "–", h.stuck ? "" : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.tickChart) + '</h2><div class="chart" id="vvTick"></div></section>' +
@@ -220,8 +221,9 @@ function vivantHealth(body, w) {
     '<div class="grid two"><section class="card"><h2>' + esc(w.strategies) + '</h2><div id="vvStrat"></div></section>' +
     '<section class="card"><h2>' + esc(w.stuckList) + "</h2>" + (!h.stuck ? '<p class="empty">' + esc(w.soon) + "</p>" : stuck ? '<div class="scroll"><table><tbody>' + stuck + "</tbody></table></div>"
       : '<p class="empty">' + esc(w.noStuck) + "</p>") + '<p class="meta">' + esc(w.actionsSoon) + "</p></section></div>";
-  lineChart(document.getElementById("vvTick"), h.history || [], { value: p => p.tick, label: w.tickChart, unit: " ms" });
-  lineChart(document.getElementById("vvBots"), h.history || [], { value: p => p.bots, label: w.botsChart, unit: " ms", color: "var(--accent)" });
+  const points = h.history || [];
+  lineChart(document.getElementById("vvTick"), points.filter(p => p.tick != null), { value: p => p.tick, label: w.tickChart, unit: " ms", waiting: w.curveWait });
+  lineChart(document.getElementById("vvBots"), points.filter(p => p.online != null), { value: p => p.online, label: w.botsChart, unit: "", color: "var(--accent)", waiting: w.curveWait });
   if (!h.by_strategy_us) { document.getElementById("vvStrat").innerHTML = '<p class="empty">' + esc(w.perfOff) + "</p>"; return; }
   rankedList(document.getElementById("vvStrat"), h.by_strategy_us.map(s => ({ name: s.name, us: s.us })),
     { value: r => r.us, unit: "µs", line2: () => "" });

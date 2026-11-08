@@ -1482,12 +1482,16 @@ def _armory_names():
     try:
         load_names()
     except Exception:  # noqa: BLE001  database down, or no coa-level-builds.json: what can be read still is
+        # Zones first: they come from AreaTable.dbc, not from the database that may be the reason we are here.
+        try:
+            if NAMES["zones"] is None:
+                NAMES["zones"] = zone_names()
+        except Exception:  # noqa: BLE001  zone names fall back to numbers
+            pass
         try:
             if not NAMES["classes"]:
                 for cls, name in mysql("SELECT class, client_name FROM %s.ascension_custom_class" % DB["world"]):
                     NAMES["classes"][int(cls)] = name
-            if NAMES["zones"] is None:
-                NAMES["zones"] = zone_names()
         except Exception:  # noqa: BLE001  names fall back to numbers, the sheet still answers
             pass
     return {**BASE_CLASSES, **NAMES["classes"]}, NAMES["specs"], NAMES["zones"] or {}
@@ -1617,7 +1621,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/market":
             self._json(ctx.market.get())
         elif path == "/api/vivant":
-            self._json(ctx.vivant.get())
+            payload = ctx.vivant.get()
+            if "world" not in payload["demo"] and payload["world"].get("zones"):
+                names = _armory_names()[2]      # the module gives zone ids: AreaTable.dbc names them
+                for zone in payload["world"]["zones"]:
+                    if not zone.get("name"):
+                        zone["name"] = names.get(zone.get("zone"), "")
+            self._json(payload)
         elif path == "/api/gm":
             if not GM_ENABLED:
                 self._json({"error": "The GM tools are turned off in dashboard.json (gmTools)."}, 403)

@@ -128,5 +128,10 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
   - Le module l'écrit toujours quand l'option est active, sans tenir compte de watch.json, puisque c'est un journal.
   - Valeurs de `kind` chez Monde : invasion, rush, server_first, guild, stuck, unstuck. Les valeurs error, boss, wipe et order sont réservées à DC et à Economie.
   - Le dashboard lit les 200 dernières lignes, en complétant par `events.jsonl.1` juste après une rotation, et les affiche dans l'onglet **Journal**, filtrable par `kind`.
-- **world.json** (CoA SquidBot) : le Pilote l'a demandé à SquidBot. Les onglets Population et Santé restent en données factices d'ici là.
+- **world.json** : écrit par CoA SquidBot (coa-3.0-live 0c3eb7c1, pas encore dans un build), activé par `AiPlayerbot.CoaLive.DataFile.Enable = 1`.
+  - Il donne les 40 zones les plus peuplées. Les noms de zones viennent d'AreaTable.dbc, même quand MySQL est arrêté.
+  - Valent `null` : souls, `tick_ms.p95`, `bots_us_per_tick`, `by_strategy_us` et stuck. La page les montre comme tels.
+  - Les courbes de tick et de bots en ligne sur 6 h sont tenues par le dashboard, en mémoire : un point toutes les 5 min tant que la page est ouverte.
+  - Le coût des snapshots n'additionne que les fichiers réels.
+- Correctif au passage : quand MySQL ne répond pas, les noms de zones (DBC) se chargent avant les classes (base).
 - **groups.json** et **runs.jsonl** attendent le plan DC 3.0.
