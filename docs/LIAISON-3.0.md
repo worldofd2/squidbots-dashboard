@@ -235,4 +235,5 @@ Le dashboard ne lit plus de `groups.json`. L'onglet assemble trois sources :
 Ce que montre la page :
 - Tuiles : runs du jour, réels + simulés ; terminés et wipes, réels seulement ; boss tués, réels + simulés ; groupes en cours ; personnages en donjon, `everyone` + bots des runs simulés.
 - Cartes : groupes réels en cours, donjons simulés en cours, par donjon, derniers runs réels, derniers runs simulés, champs de bataille simulés (en cours, bilan du jour, derniers), détail Dungeon Clear.
-- Chaque source absente ou coupée dit quoi activer : `AiPlayerbot.CoaWorld.DungeonSim.Enable`, `AiPlayerbot.CoaWorld.BgSim.Enable`, ou les fichiers du §14.
+- Chaque source absente ou coupée dit quoi activer : `AiPlayerbot.CoaWorld.DungeonSim.Enable`, ou les fichiers du §14.
+- Champs de bataille : BgSim reste coupé dans le pack (décision de l'user, 09/11). La carte montre les BG et arènes réels (zones de `everyone`, sinon zones des bots aléatoires) et une simple mention « BG simulés : coupés » ; le bloc simulé n'apparaît que si `bg_sim` existe.

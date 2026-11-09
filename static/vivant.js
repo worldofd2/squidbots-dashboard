@@ -11,9 +11,10 @@ const VIVANT_WORDS = {
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", inBg: "In battlegrounds and arenas", pvpAll: n => n + " in PvP in all",
     demoTab: "Made-up figures: nothing on this tab comes from the server yet.",
-    realNow: "Real groups in instances", simNow: "Simulated dungeons", bgNow: "Simulated battlegrounds", lastReal: "Last real runs", lastSim: "Last simulated runs",
+    realNow: "Real groups in instances", simNow: "Simulated dungeons", bgNow: "Battlegrounds and arenas", bgSimOff: "Simulated battlegrounds: off.", bgSimTitle: "Simulated",
+    noRealBg: "Nobody in a battleground or an arena right now.", lastReal: "Last real runs", lastSim: "Last simulated runs",
     dcRuns: "Dungeon Clear runs (detail)", leader: "led by", noRealRun: "No real run since the server start.", noSim: "No simulated dungeon right now.", noBg: "No simulated battleground right now.",
-    simOff: "Simulated dungeons are off: AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 in playerbots.conf.", bgOff: "Simulated battlegrounds are off: AiPlayerbot.CoaWorld.BgSim.Enable = 1 in playerbots.conf.",
+    simOff: "Simulated dungeons are off: AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 in playerbots.conf.",
     phase: { gathering: "gathering", inside: "inside", back: "coming back", playing: "playing" }, faction: { alliance: "Alliance", horde: "Horde" },
     realSim: (a, b) => a + " real · " + b + " simulated", realOnly: "real groups", sinceAt: t => "since " + t, simItems: n => n + " items looted by simulated runs today",
     bgToday: (m, a, h, hon) => "Today: " + m + " matches, Alliance " + a + " · Horde " + h + " wins, " + hon + " honor", won: side => side + " won", honor: "honor",
@@ -64,9 +65,10 @@ const VIVANT_WORDS = {
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", inBg: "En champ de bataille ou arène", pvpAll: n => n + " en JcJ au total",
     demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.",
-    realNow: "Groupes réels en instance", simNow: "Donjons simulés", bgNow: "Champs de bataille simulés", lastReal: "Derniers runs réels", lastSim: "Derniers runs simulés",
+    realNow: "Groupes réels en instance", simNow: "Donjons simulés", bgNow: "Champs de bataille et arènes", bgSimOff: "BG simulés : coupés.", bgSimTitle: "Simulés",
+    noRealBg: "Personne en champ de bataille ou en arène en ce moment.", lastReal: "Derniers runs réels", lastSim: "Derniers runs simulés",
     dcRuns: "Runs Dungeon Clear (détail)", leader: "mené par", noRealRun: "Aucun run réel depuis le démarrage du serveur.", noSim: "Aucun donjon simulé en ce moment.", noBg: "Aucun champ de bataille simulé en ce moment.",
-    simOff: "Les donjons simulés sont coupés : AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 dans playerbots.conf.", bgOff: "Les champs de bataille simulés sont coupés : AiPlayerbot.CoaWorld.BgSim.Enable = 1 dans playerbots.conf.",
+    simOff: "Les donjons simulés sont coupés : AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 dans playerbots.conf.",
     phase: { gathering: "rassemblement", inside: "à l’intérieur", back: "retour", playing: "en cours" }, faction: { alliance: "Alliance", horde: "Horde" },
     realSim: (a, b) => a + " réels · " + b + " simulés", realOnly: "groupes réels", sinceAt: t => "depuis " + t, simItems: n => n + " objets ramassés par les runs simulés aujourd’hui",
     bgToday: (m, a, h, hon) => "Aujourd’hui : " + m + " matchs, victoires Alliance " + a + " · Horde " + h + ", " + hon + " points d’honneur", won: side => "victoire " + side, honor: "honneur",
@@ -378,7 +380,11 @@ function vivantGroups(body, w) {
   const inSim = sim ? (sim.running || []).reduce((n, r) => n + (r.bots || 0), 0) : 0;
   const realOff = !d.worldOn ? w.missing(w.files.world, OPTION_KEYS.world) : !real ? w.noRealRun : "";
   const simOff = !d.mondeOn ? w.missing(w.files.monde, OPTION_KEYS.monde) : !sim ? w.simOff : "";
-  const bgOff = !d.mondeOn ? w.missing(w.files.monde, OPTION_KEYS.monde) : !bg ? w.bgOff : "";
+  // Real battlegrounds (BgSim stays off in the pack, the user 09/11): everyone's zones, else the random bots' zones.
+  const evZones = VIVANT.world && VIVANT.world.everyone && VIVANT.world.everyone.zones;
+  const bgZones = (evZones || (VIVANT.world || {}).zones || []).filter(z => BG_MAPS.has(z.map));
+  const realBg = bgZones.map(z => '<div class="zone-row"><div><strong>' + esc(z.name || "#" + z.zone) + '</strong><div class="meta">' +
+    esc(evZones ? who(z) : num(z.bots) + " bots") + '</div></div><div class="meta">' + num(evZones ? all(z) : z.bots) + "</div></div>").join("");
   const sinceFoot = t => t ? w.sinceAt(hhmm(t)) : "";
   body.innerHTML = fake + vivantFigures([
     [w.runsToday, real || sim ? num((rt.runs || 0) + (st.runs || 0)) : "–", sim ? w.realSim(num(rt.runs || 0), num(st.runs || 0)) : sinceFoot(rt.since)],
@@ -394,9 +400,10 @@ function vivantGroups(body, w) {
       esc(w.cleared) + '</th><th class="r">' + esc(w.wipes) + '</th><th class="r">' + esc(w.median) + '</th><th class="r">' + esc(w.best) + "</th>", byRows) + "</section>" : "") +
     '<div class="grid two"><section class="card"><h2>' + esc(w.lastReal) + "</h2>" + (realLast ? table("", realLast) : note(realOff || w.noRealRun)) + "</section>" +
     '<section class="card"><h2>' + esc(w.lastSim) + "</h2>" + (simLast ? table("", simLast) : note(simOff || w.noSim)) + "</section></div>" +
-    '<section class="card"><h2>' + esc(w.bgNow) + "</h2>" + (bgOff ? note(bgOff) :
-      (bgRunning || note(w.noBg)) + '<p class="meta">' + esc(w.bgToday(num(bt.matches || 0), num(bt.allianceWins || 0), num(bt.hordeWins || 0), num(bt.honor || 0))) + "</p>" +
-      (bgLast ? table("", bgLast) : "")) + "</section>" +
+    '<section class="card"><h2>' + esc(w.bgNow) + "</h2>" + (realBg || note(w.noRealBg)) +
+      (!bg ? '<p class="meta">' + esc(w.bgSimOff) + "</p>" : '<h2 class="later">' + esc(w.bgSimTitle) + "</h2>" + (bgRunning || note(w.noBg)) +
+        '<p class="meta">' + esc(w.bgToday(num(bt.matches || 0), num(bt.allianceWins || 0), num(bt.hordeWins || 0), num(bt.honor || 0))) + "</p>" +
+        (bgLast ? table("", bgLast) : "")) + "</section>" +
     (dc.length ? lastRunsCard(w, dc).replace(esc(w.lastRuns), esc(w.dcRuns)) : "");
 }
 
