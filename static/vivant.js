@@ -124,7 +124,7 @@ function vivantPopulation(body, w) {
   const capitals = zones.filter(z => z.capital).reduce((s, z) => s + z.bots, 0);
   body.innerHTML = topicError(d) + vivantFigures([[w.online, num(d.online), ""], [w.players, num(d.players), ""],
     [w.inCapitals, num(capitals), Math.round(capitals / Math.max(1, d.online) * 100) + " %"], [w.busy, num(acts.dungeon), ""],
-    h.stuck ? [w.stuck, num(h.stuck.length), ""] : [w.stuck24, VIVANT.events ? num(recentEvents(["stuck"], DAY).length) : "–", VIVANT.events ? w.fromEvents : w.soon],
+    h.stuck ? [w.stuck, num(h.stuck.length), ""] : [w.stuck24, (stuckDay() || {}).count || "–", stuckDay() ? (stuckDay().journal ? w.fromEvents : "") : w.soon],
     [w.zonesUsed, num(zones.length), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
@@ -155,6 +155,12 @@ function vivantPopulation(body, w) {
 
 const DAY = 86400;
 const recentEvents = (kinds, span) => (VIVANT.events || []).filter(e => kinds.includes(e.kind) && (!span || Date.now() / 1000 - e.at < span));
+// Stuck bots over 24 h: CoA World's own count (monde.json) when it writes one; the 200 journal lines cover only minutes on a big realm.
+function stuckDay() {
+  const rec = !(VIVANT.demo || []).includes("monde") && VIVANT.monde && VIVANT.monde.recovery_24h;
+  if (rec) return { count: num(rec.stuck), journal: false };
+  return VIVANT.events ? { count: num(recentEvents(["stuck"], DAY).length), journal: true } : null;
+}
 
 function vivantMonde(body, w) {
   const d = VIVANT.monde || {};
@@ -314,10 +320,11 @@ function vivantHealth(body, w) {
   const stuckJournal = journal.length ? '<p class="meta">' + esc(w.stuckEvents) + '</p><div class="scroll"><table><tbody>' + journal.slice(0, 20).map(e =>
     '<tr><td class="meta">' + esc(ago(e.at)) + '</td><td><span style="color:' + KIND_COLORS[e.kind] + '">' + esc(w.kind[e.kind]) + "</span></td><td><strong>" + esc(e.bot) +
     "</strong> " + esc(e.text) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="empty">' + esc(w.noStuck) + "</p>";
-  const stuckCount = h.stuck ? num(h.stuck.length) : journal.length ? num(recentEvents(["stuck"], DAY).length) : "–";
+  const day = stuckDay();
+  const stuckCount = h.stuck ? num(h.stuck.length) : day ? day.count : "–";
   body.innerHTML = topicError(d) + vivantFigures([[w.tick, tick.avg === null || tick.avg === undefined ? "–" : num(tick.avg) + " ms", w.tickFoot(tick.p95 == null ? null : num(tick.p95), tick.max == null ? null : num(tick.max))],
     [w.botsCpu, h.bots_us_per_tick ? (cpu.avg / 1000).toFixed(1) + " ms" : "–", h.bots_us_per_tick ? w.botsCpuFoot((cpu.p95 / 1000).toFixed(1)) : "PerfMon off"], [w.build, num(builds) + " µs", w.buildFoot],
-    [h.stuck ? w.stuck : w.stuck24, stuckCount, h.stuck ? "" : journal.length ? w.fromEvents : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
+    [h.stuck ? w.stuck : w.stuck24, stuckCount, h.stuck ? "" : day ? (day.journal ? w.fromEvents : "") : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.tickChart) + '</h2><div class="chart" id="vvTick"></div></section>' +
     '<section class="card"><h2>' + esc(w.botsChart) + '</h2><div class="chart" id="vvBots"></div></section></div>' +
     '<div class="grid two"><section class="card"><h2>' + esc(w.strategies) + '</h2><div id="vvStrat"></div></section>' +
