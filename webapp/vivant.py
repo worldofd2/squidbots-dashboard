@@ -48,13 +48,32 @@ class Vivant:
         self.lock = threading.Lock()
         self.cache = {}
         self.watched = 0.0
+        self.wanted = {}        # topic -> when a page last asked for it (the Server page wants world.json only)
         self.asked = 0.0        # last call of get(): the page polls every 15 s while it is shown
         self.resumed = 0.0      # when the watch began again after a pause
+
+    def watch_world(self):
+        """The Server page shows SquidBot's tick and players when the world console is off: keep world.json written."""
+        with self.lock:
+            self._watch(("world",))
+
+    def live_figures(self):
+        """Tick and players from a fresh world.json, for the server monitor; None when stale or absent."""
+        with self.lock:
+            world = self._read("world")
+        if not world or world.get("error") or not world.get("at") or time.time() - float(world["at"]) > 3 * float(world.get("every") or 10):
+            return None
+        tick = ((world.get("health") or {}).get("tick_ms") or {}).get("avg")
+        everyone = (world.get("everyone") or {}).get("total") or {}
+        return {"tick": tick, "players": everyone.get("players", world.get("players"))}
 
     def _watch(self, topics):
         """Tell the module someone looks. The module makes its folder only when it writes, and writes only once watched:
         so the folder is made here, but only inside a logs folder that exists (never a stray path)."""
         now = time.time()
+        for topic in topics:
+            self.wanted[topic] = now
+        topics = sorted(t for t, at in self.wanted.items() if now - at < 90)     # every page that looks, together
         if now - self.watched < WATCH_EVERY or not os.path.isdir(os.path.dirname(self.dir)):
             return
         self.watched = now

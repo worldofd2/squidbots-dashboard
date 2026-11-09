@@ -99,13 +99,14 @@ class Monitor:
     realm's live snapshot, or None. `every` seconds between rounds; 0 turns sampling off (state is then read
     on demand, without history)."""
 
-    def __init__(self, realms, root, bots_online, every=60, coa_exe=None, use_ra=True):
+    def __init__(self, realms, root, bots_online, every=60, coa_exe=None, use_ra=True, live=None):
         self.realms = realms
         self.root = root
         self.bots_online = bots_online
         self.every = every
         self.coa_exe = (coa_exe or "").lower()
         self.use_ra = use_ra
+        self.live = live        # realm key -> {"tick", "players"} from SquidBot's world.json, when the console gives none
         self.lock = threading.Lock()
         self.cpu = procinfo.CpuMeter()
         self.tracks = {r.key: Track(r.file("perf.json")) for r in realms}
@@ -158,6 +159,15 @@ class Monitor:
                 state["ra"] = True
             except ra.RaError as error:
                 state["ra"], state["raError"] = False, str(error)
+        if running and self.live and state.get("tick") is None and state.get("tickMean") is None:
+            try:
+                figures = self.live(realm.key) or {}
+            except Exception:  # noqa: BLE001  a comfort: the tile stays "–"
+                figures = {}
+            if figures.get("tick") is not None:
+                state["tickMean"], state["tickSource"] = figures["tick"], "squidbot"
+            if state.get("players") is None and figures.get("players") is not None:
+                state["players"] = figures["players"]
         state["bots"] = self.bots_online(realm.key) if running else None
         return state
 
@@ -175,7 +185,13 @@ class Monitor:
                 state = self.look(realm, pids)
             except Exception as error:  # noqa: BLE001  one realm's trouble never stops the others
                 state = {"running": False, "error": str(error), "at": round(time.time())}
-            if before.get("running") != state.get("running") and "at" in before:
+            if before.get("running") and state.get("running") and before.get("pid") and state.get("pid") \
+                    and before["pid"] != state["pid"]:
+                # Stopped and started again between two rounds (a new exe put in place, say): both events.
+                track.event("stop", "restart")
+                track.event("start", "restart")
+                changed.add(realm.key)
+            elif before.get("running") != state.get("running") and "at" in before:
                 # The launcher forgets a realm's pid (.state.json) when it stops it: a world gone while its pid is
                 # still recorded stopped on its own, a crash even when the core wrote no report (a heap fault, say).
                 gone = (not state.get("running") and realm.key != "coa" and before.get("pid")

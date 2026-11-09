@@ -1118,7 +1118,8 @@ def context(key):
 
 MONITOR = monitor.Monitor(REALMS, ROOT, lambda key: live_count(context(key)),
                           every=int(SETTINGS.get("monitorEvery", 60)), coa_exe=SETTINGS.get("worldserverPath"),
-                          use_ra=SETTINGS.get("console", True) is not False)
+                          use_ra=SETTINGS.get("console", True) is not False,
+                          live=lambda key: context(key).vivant.live_figures())
 GM = gm.Gm(ROOT, mysql, os.path.join(HERE, "data", "gm-actions.jsonl"))
 # The server's settings belong to the launcher, which builds every .conf file again at each start: the dashboard
 # only reads them, unless dashboard.json asks for its own Settings page (a server run without the launcher).
@@ -1629,6 +1630,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif path == "/api/realms":
             self._json(realms_overview())
         elif path == "/api/perf":
+            ctx.vivant.watch_world()
             self._json(dict(MONITOR.series(ctx.realm.key, "week" if first("span") == "week" else "day"),
                             realm=ctx.realm.public(), crashes=server_state(ctx), cores=procinfo.cores()))
         elif path == "/api/market":
