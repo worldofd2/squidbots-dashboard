@@ -230,7 +230,9 @@ Le dashboard ne lit plus de `groups.json`. L'onglet assemble trois sources :
   - `dungeon_sim.running[]` : dungeon (id de carte), dungeonName, faction, level, bots, phase (gathering | inside | back), startedAt, endsAt, bosses.
   - `bg_sim` : `running[]` {bg, bgName, levelMin, levelMax, alliance, horde, phase, startedAt, endsAt} ; `today` {since, matches, allianceWins, hordeWins, honor, purchases} ; `last[]` {bg, bgName, levelMin, levelMax, bots, winner, durationS, honor, at}.
   - Un run simulé compte quand son butin est tiré, au retour du premier bot.
-- **Dungeon Clear** : `runs.jsonl` (§3 + `instance`), lignes du jeu réel à venir sur dc-3.0, rotation à 5 Mo.
+- **Dungeon Clear** : `runs.jsonl` (§3 + `instance`, dc-3.0 ff66c98), rotation à 5 Mo vers `.1`.
+  - `runId` = `rr-<aaaammjj-hhmmss>-<instance>`. `result` : clear, wipe ou aborted (`setup_failed` jamais en jeu réel).
+  - Après un wipe, un nouveau `dc on` dans la même instance ouvre une nouvelle ligne, dont `bossesKilled` repart de là. Le dashboard regroupe les lignes d'une même `instance` en un seul run : boss, wipes et durées additionnés, premier départ, dernier résultat, « n dc on à la suite ».
 
 Ce que montre la page :
 - Tuiles : runs du jour, réels + simulés ; terminés et wipes, réels seulement ; boss tués, réels + simulés ; groupes en cours ; personnages en donjon, `everyone` + bots des runs simulés.

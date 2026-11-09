@@ -257,8 +257,35 @@ class Vivant:
                 r["quality"] = quality
 
     def _last_runs(self, keep=8):
-        """The newest lines of runs.jsonl (one per finished run, Dungeon Clear's record), newest first; None without it."""
-        return tail_jsonl(os.path.join(self.dir, "runs.jsonl"), keep)
+        """Dungeon Clear's finished runs (runs.jsonl, dc-3.0 ff66c98), newest first; None without the file.
+        After a wipe a new `dc on` in the same instance starts a new line whose bossesKilled counts from there only: the
+        lines of one instance make one run here (bosses and wipes added, first start, last end and result)."""
+        path = os.path.join(self.dir, "runs.jsonl")
+        rows = tail_jsonl(path, keep * 4)
+        if rows is None:
+            return None
+        if len(rows) < keep * 4:
+            rows += tail_jsonl(path + ".1", keep * 4 - len(rows)) or []     # just after a rotation (5 MB)
+        runs, by_instance = [], {}
+        for row in rows:                    # newest first
+            key = row.get("instance")
+            run = by_instance.get(key) if key is not None else None
+            if run is None:
+                run = dict(row, parts=1)
+                runs.append(run)
+                if key is not None:
+                    by_instance[key] = run
+                continue
+            run["parts"] += 1
+            run["bossesKilled"] = (run.get("bossesKilled") or 0) + (row.get("bossesKilled") or 0)
+            if run.get("bossesTotal"):
+                run["bossesKilled"] = min(run["bossesKilled"], run["bossesTotal"])
+            run["wipes"] = (run.get("wipes") or 0) + (row.get("wipes") or 0)
+            run["durationS"] = (run.get("durationS") or 0) + (row.get("durationS") or 0)
+            if row.get("startedAtMs"):
+                run["startedAtMs"] = min(run.get("startedAtMs") or row["startedAtMs"], row["startedAtMs"])
+            run["bossTimeline"] = (row.get("bossTimeline") or []) + (run.get("bossTimeline") or [])
+        return runs[:keep]
 
     def _events(self, keep=200):
         """The newest lines of events.jsonl, newest first, topped up from events.jsonl.1 just after a rotation;

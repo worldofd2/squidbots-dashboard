@@ -13,7 +13,7 @@ const VIVANT_WORDS = {
     demoTab: "Made-up figures: nothing on this tab comes from the server yet.",
     realNow: "Real groups in instances", simNow: "Simulated dungeons", bgNow: "Battlegrounds and arenas", bgSimOff: "Simulated battlegrounds: off.", bgSimTitle: "Simulated",
     noRealBg: "Nobody in a battleground or an arena right now.", lastReal: "Last real runs", lastSim: "Last simulated runs",
-    dcRuns: "Dungeon Clear runs (detail)", leader: "led by", noRealRun: "No real run since the server start.", noSim: "No simulated dungeon right now.", noBg: "No simulated battleground right now.",
+    dcRuns: "Dungeon Clear runs (detail)", parts: n => n + " dc on in a row", leader: "led by", noRealRun: "No real run since the server start.", noSim: "No simulated dungeon right now.", noBg: "No simulated battleground right now.",
     simOff: "Simulated dungeons are off: AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 in playerbots.conf.",
     phase: { gathering: "gathering", inside: "inside", back: "coming back", playing: "playing" }, faction: { alliance: "Alliance", horde: "Horde" },
     realSim: (a, b) => a + " real · " + b + " simulated", realOnly: "real groups", sinceAt: t => "since " + t, simItems: n => n + " items looted by simulated runs today",
@@ -67,7 +67,7 @@ const VIVANT_WORDS = {
     demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.",
     realNow: "Groupes réels en instance", simNow: "Donjons simulés", bgNow: "Champs de bataille et arènes", bgSimOff: "BG simulés : coupés.", bgSimTitle: "Simulés",
     noRealBg: "Personne en champ de bataille ou en arène en ce moment.", lastReal: "Derniers runs réels", lastSim: "Derniers runs simulés",
-    dcRuns: "Runs Dungeon Clear (détail)", leader: "mené par", noRealRun: "Aucun run réel depuis le démarrage du serveur.", noSim: "Aucun donjon simulé en ce moment.", noBg: "Aucun champ de bataille simulé en ce moment.",
+    dcRuns: "Runs Dungeon Clear (détail)", parts: n => n + " dc on à la suite", leader: "mené par", noRealRun: "Aucun run réel depuis le démarrage du serveur.", noSim: "Aucun donjon simulé en ce moment.", noBg: "Aucun champ de bataille simulé en ce moment.",
     simOff: "Les donjons simulés sont coupés : AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 dans playerbots.conf.",
     phase: { gathering: "rassemblement", inside: "à l’intérieur", back: "retour", playing: "en cours" }, faction: { alliance: "Alliance", horde: "Horde" },
     realSim: (a, b) => a + " réels · " + b + " simulés", realOnly: "groupes réels", sinceAt: t => "depuis " + t, simItems: n => n + " objets ramassés par les runs simulés aujourd’hui",
@@ -334,8 +334,8 @@ function vivantEconomy(body, w) {
 function lastRunsCard(w, runs) {
   const label = r => esc(r.dungeonName || r.dungeon) + (r.difficulty ? ' <span class="meta">' + esc(w.difficulty[r.difficulty] || "") + "</span>" : "");
   const rows = runs.map(r => "<tr><td>" + label(r) + '<div class="meta">' + esc((r.comp || []).map(c => c.name).concat(r.players || []).join(", ")) +
-    "</div></td><td>" + esc(w.result[r.result] || r.result) + ' <span class="meta">' + r.bossesKilled + "/" + r.bossesTotal + '</span></td><td class="r">' +
-    duration(r.durationS) + '</td><td class="r">' + (r.wipes || 0) + '</td><td class="r meta">' + esc(ago(r.endedAtMs / 1000)) + "</td></tr>").join("");
+    (r.parts > 1 ? " · " + esc(w.parts(r.parts)) : "") + "</div></td><td>" + esc(w.result[r.result] || r.result) + ' <span class="meta">' + r.bossesKilled + "/" + r.bossesTotal +
+    '</span></td><td class="r">' + duration(r.durationS) + '</td><td class="r">' + (r.wipes || 0) + '</td><td class="r meta">' + esc(ago(r.endedAtMs / 1000)) + "</td></tr>").join("");
   return '<section class="card"><h2>' + esc(w.lastRuns) + '</h2><div class="scroll"><table><tbody>' + rows + "</tbody></table></div></section>";
 }
 
