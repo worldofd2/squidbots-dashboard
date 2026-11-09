@@ -30,6 +30,12 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 # Without it the dashboard expects to sit in <repack>\Dashboard and publishes nothing.
 SETTINGS_FILE = os.path.join(HERE, "dashboard.json")
 SETTINGS = json.load(open(SETTINGS_FILE, encoding="utf-8-sig")) if os.path.exists(SETTINGS_FILE) else {}
+# Paths written with forward slashes ("C:/server/...") are fine in JSON: make them Windows paths, or the worldserver
+# the monitor follows is never matched against the running process and the realm shows as stopped.
+for _key in ("repack", "worldserverPath", "coaLog", "chatLog", "lootLog", "crashesDir", "dbcDir", "incidentsLog", "gameClient",
+             "configDir", "botStatusFile", "squidbotDir", "publishDir", "mysqlExe"):
+    if isinstance(SETTINGS.get(_key), str) and SETTINGS[_key]:
+        SETTINGS[_key] = os.path.normpath(SETTINGS[_key])
 # Optional build.json next to this file: which core and which pull requests this server is running.
 # Only a test realm has one; without it the page is exactly what it always was.
 BUILD_FILE = os.path.join(HERE, "build.json")
