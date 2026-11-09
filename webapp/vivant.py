@@ -107,13 +107,14 @@ class Vivant:
                     out["stale"].append(topic)
                 out[topic] = data
             if "economy" not in out["demo"] and not out["economy"].get("error"):
-                self._name_items(out["economy"], ("top_sales_24h", "crafts_24h", "orders", "smelt_24h", "disenchant_24h"))
+                self._name_items(out["economy"], ("top_sales_24h", "crafts_24h", "orders", "smelt_24h", "disenchant_24h", "prospect_24h"))
                 out["economy"] = dict(out["economy"], categories=by_class(out["economy"].get("categories") or []))
                 out["economy"] = dict(out["economy"], history=self._remember(out["economy"]))
             if "monde" not in out["demo"] and not out["monde"].get("error"):
                 self._name_items(out["monde"], ("guild_orders",))
             if "world" not in out["demo"] and not out["world"].get("error"):
                 world = out["world"]
+                self._name_items(world, ("guild_orders",))
                 health = dict(world.get("health") or {})
                 health.setdefault("history", self._remember_world(world))
                 out["world"] = dict(world, health=health)
@@ -320,7 +321,8 @@ def _demo_economy(now):
             "disenchant_24h": [{"item": 14344, "name": "Large Brilliant Shard", "quality": 3, "count": 18, "from": 18},
                                {"item": 16204, "name": "Illusion Dust", "quality": 1, "count": 96, "from": 41},
                                {"item": 16203, "name": "Greater Eternal Essence", "quality": 2, "count": 12, "from": 30}],
-            "clock": {"enabled": 1, "offline_added_s": 7200, "expired_24h": r.randint(300, 420), "sold_24h": r.randint(800, 1100), "relisted_24h": r.randint(150, 260)},
+            "prospect_24h": [{"item": 1705, "name": "Lesser Moonstone", "quality": 2, "count": 9, "from": 40}],
+            "clock": {"enabled": 1, "offline_added_s": 7200, "resumed": 2810, "expired_24h": r.randint(300, 420), "sold_24h": r.randint(800, 1100), "relisted_24h": None},
             "ahbot_24h": {"listed": r.randint(2400, 2800), "bought": r.randint(500, 700), "gold_in": 4100000, "gold_out": 3650000},
             "history": [{"ts": int(now - i * 3600), "auctions": 3000 + 300 * math.sin((now - i * 3600) / 20000)} for i in range(48, -1, -1)],
             "at": int(now), "every": 60, "buildUs": 1250}
@@ -360,14 +362,17 @@ def _demo_groups(now):
 def _demo_monde(now):
     """CoA Monde's state of the moment (proposed 09/11): invasions, rushes, guilds and their orders, server firsts."""
     r = _rng(now, 5)
-    return {"invasions": [{"zone": 42, "name": "Duskwood", "kind": "Scourge", "since": int(now - 1500), "ends": int(now + 2100), "bots": r.randint(12, 30)}],
-            "rushes": [{"what": "Zul'Farrak", "zone": 1176, "name": "Zul'Farrak", "since": int(now - 900), "bots": 20}],
-            "guilds": [{"id": 1, "name": "Iron Tide", "members": 48, "bots": 46, "online": r.randint(18, 30), "bank_gold": 12500000, "orders_open": 2},
-                       {"id": 2, "name": "Moonwhisper", "members": 37, "bots": 37, "online": r.randint(10, 22), "bank_gold": 8400000, "orders_open": 1},
-                       {"id": 3, "name": "Blood of Ashenvale", "members": 29, "bots": 28, "online": r.randint(8, 16), "bank_gold": None, "orders_open": 0}],
-            "guild_orders": [{"id": 12, "guild": "Iron Tide", "item": 13444, "name": "Major Mana Potion", "quality": 1, "count": 20, "state": "open", "at": int(now - 3000)},
-                             {"id": 11, "guild": "Moonwhisper", "item": 14047, "name": "Runecloth", "quality": 1, "count": 60, "state": "done", "at": int(now - 9000)}],
-            "server_firsts": [{"what": "level 60", "by": "Kaelis", "at": int(now - 20000)}, {"what": "Onyxia", "by": "<Iron Tide>", "at": int(now - 50000)}],
+    return {"invasions": [{"zone": 10, "map": 0, "name": "Duskwood", "kind": "scourge", "site": "Darkshire", "state": "running", "level": 25, "wave": 2,
+                           "since": int(now - 1500), "starts": None, "ends": int(now + 2100), "bots": r.randint(12, 30)}],
+            "rushes": [{"what": "gathering nodes", "zone": 33, "map": 0, "name": "Stranglethorn Vale", "area": "Mizjah Ruins", "level": 40, "nodes": 14,
+                        "since": int(now - 900), "ends": int(now + 900), "bots": 9}],
+            "guilds": [{"id": 1, "name": "Iron Tide", "members": 48, "bots": 46, "online": r.randint(18, 30), "bank_gold": 12500000, "orders_open": None},
+                       {"id": 2, "name": "Moonwhisper", "members": 37, "bots": 37, "online": r.randint(10, 22), "bank_gold": 8400000, "orders_open": None},
+                       {"id": 3, "name": "Blood of Ashenvale", "members": 29, "bots": 28, "online": r.randint(8, 16), "bank_gold": None, "orders_open": None}],
+            "guild_orders": [{"id": 12, "guild": "Iron Tide", "item": 13444, "name": "Major Mana Potion", "quality": 1, "count": 20, "state": "crafted", "by": "Lyria", "at": int(now - 3000)},
+                             {"id": 11, "guild": "Moonwhisper", "item": 14047, "name": "Runecloth", "quality": 1, "count": 60, "state": "shared", "by": "Thorgal", "at": int(now - 9000)}],
+            "server_firsts": [{"what": "level 60 (the Alliance)", "by": "Kaelis", "guild": "Iron Tide", "at": int(now - 20000)},
+                              {"what": "Onyxia (the Horde)", "by": "Grimbald", "guild": "Moonwhisper", "at": int(now - 50000)}],
             "recovery_24h": {"stuck": r.randint(8, 20), "unstuck": r.randint(6, 18)},
             "at": int(now), "every": 30, "buildUs": 60}
 

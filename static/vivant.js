@@ -17,10 +17,11 @@ const VIVANT_WORDS = {
       rest: "Resting", fish: "Fishing", gather: "Gathering", pvp: "PvP", dungeon: "Dungeon (simulated)", idle: "Idle" },
     capitals: "Capitals", alliance: "Alliance", horde: "Horde", noCapital: "No bot in a capital right now.",
     invasionsNow: "Invasions", rushesNow: "Rushes", guilds: "Guilds", guildOrders: "Guild orders", stuck24: "Stuck, 24 h", unstuck24: "Freed, 24 h",
-    happening: "Happening now", nothingNow: "No invasion or rush right now.", ends: "ends", members: "Members", onlineCol: "Online", bank: "Bank", openOrders: "Open orders",
+    happening: "Happening now", nothingNow: "No invasion or rush right now.", ends: "ends", members: "Members", onlineCol: "All online", bank: "Bank", openOrders: "Open orders",
     noGuild: "No guild yet.", noGuildOrder: "No guild order.", firsts: "Server firsts", noFirst: "No server first yet.", highlights: "Latest highlights",
-    noHighlight: "Nothing yet in the journal.", fromEvents: "counted in events.jsonl", guildOrderState: { open: "open", done: "done", cancelled: "cancelled" },
-    smelt: "Smelting, 24 h", disenchant: "Disenchanting, 24 h", fromItems: n => "from " + n + " items", clock: "Auction clock",
+    noHighlight: "Nothing yet in the journal.", fromEvents: "counted in events.jsonl", guildOrderState: { shared: "shared from the bank", crafted: "crafted", bought: "bought", none: "not served", open: "open", done: "done" },
+    botsOnline: "Bots online", announced: "announced", starts: "starts", wave: "wave", nodes: "nodes", level: "level", servedBy: "by", sinceStart: "since the server start",
+    smelt: "Smelting, 24 h", disenchant: "Disenchanting and prospecting, 24 h", fromItems: n => "from " + n + " items", fromOre: n => "prospected from " + n + " ore", resumed: "Auctions shifted at start-up", clock: "Auction clock",
     clockOn: "Auctions run on game time: the hours the server is off are added to every auction.", clockOff: "Auctions run on real time (clock off).",
     offlineAdded: "Added at the last start", expired: "Expired, 24 h", soldClock: "Sold, 24 h", relisted: "Relisted, 24 h",
     ahbot: "Auction house bot, 24 h", listed: "Listed", bought: "Bought", goldIn: "Gold in", goldOut: "Gold out",
@@ -54,10 +55,11 @@ const VIVANT_WORDS = {
       rest: "Se reposent", fish: "Pêche", gather: "Récolte", pvp: "JcJ", dungeon: "Donjon (simulé)", idle: "Inactifs" },
     capitals: "Capitales", alliance: "Alliance", horde: "Horde", noCapital: "Aucun bot en capitale pour l’instant.",
     invasionsNow: "Invasions", rushesNow: "Ruées", guilds: "Guildes", guildOrders: "Commandes de guilde", stuck24: "Coincés, 24 h", unstuck24: "Décoincés, 24 h",
-    happening: "En ce moment", nothingNow: "Aucune invasion ni ruée en ce moment.", ends: "fin", members: "Membres", onlineCol: "En ligne", bank: "Banque", openOrders: "Commandes ouvertes",
+    happening: "En ce moment", nothingNow: "Aucune invasion ni ruée en ce moment.", ends: "fin", members: "Membres", onlineCol: "Tous en ligne", bank: "Banque", openOrders: "Commandes ouvertes",
     noGuild: "Aucune guilde pour l’instant.", noGuildOrder: "Aucune commande de guilde.", firsts: "Premiers du serveur", noFirst: "Aucun premier du serveur pour l’instant.", highlights: "Derniers faits marquants",
-    noHighlight: "Rien dans le journal pour l’instant.", fromEvents: "comptés dans events.jsonl", guildOrderState: { open: "ouverte", done: "livrée", cancelled: "annulée" },
-    smelt: "Fonte, 24 h", disenchant: "Désenchantement, 24 h", fromItems: n => "de " + n + " objets", clock: "Horloge des enchères",
+    noHighlight: "Rien dans le journal pour l’instant.", fromEvents: "comptés dans events.jsonl", guildOrderState: { shared: "donnée par la banque", crafted: "fabriquée", bought: "achetée", none: "non servie", open: "ouverte", done: "livrée" },
+    botsOnline: "Bots en ligne", announced: "annoncée", starts: "début", wave: "vague", nodes: "filons", level: "niveau", servedBy: "par", sinceStart: "depuis le démarrage du serveur",
+    smelt: "Fonte, 24 h", disenchant: "Désenchantement et prospection, 24 h", fromItems: n => "de " + n + " objets", fromOre: n => "prospecté dans " + n + " minerais", resumed: "Enchères décalées au démarrage", clock: "Horloge des enchères",
     clockOn: "Les enchères tournent sur le temps de jeu : les heures où le serveur est arrêté sont ajoutées à chaque enchère.", clockOff: "Les enchères tournent sur le temps réel (horloge coupée).",
     offlineAdded: "Ajouté au dernier démarrage", expired: "Expirées, 24 h", soldClock: "Vendues, 24 h", relisted: "Remises en vente, 24 h",
     ahbot: "Bot de l’hôtel des ventes, 24 h", listed: "Mises en vente", bought: "Achats", goldIn: "Or reçu", goldOut: "Or dépensé",
@@ -156,19 +158,27 @@ const recentEvents = (kinds, span) => (VIVANT.events || []).filter(e => kinds.in
 
 function vivantMonde(body, w) {
   const d = VIVANT.monde || {};
-  const inv = d.invasions || [], rush = d.rushes || [], guilds = d.guilds || [], gorders = d.guild_orders || [];
+  const inv = d.invasions || [], rush = d.rushes || [], guilds = d.guilds || [], gorders = d.guild_orders || (VIVANT.world || {}).guild_orders || [];
   const rec = d.recovery_24h || { stuck: recentEvents(["stuck"], DAY).length, unstuck: recentEvents(["unstuck"], DAY).length, events: true };
-  const firsts = d.server_firsts && d.server_firsts.length ? d.server_firsts.map(f => ({ at: f.at, text: f.what, bot: f.by }))
+  const firsts = d.server_firsts && d.server_firsts.length ? d.server_firsts.map(f => ({ at: f.at, text: f.what + (f.guild ? " <" + f.guild + ">" : ""), bot: f.by }))
     : recentEvents(["server_first"]).map(e => ({ at: e.at, text: e.text, bot: e.bot }));
-  const now = inv.map(i => '<div class="zone-row"><div><strong>' + esc(w.kind.invasion) + " · " + esc(i.name || "#" + i.zone) + '</strong><div class="meta">' +
-      esc(i.kind || "") + " · " + esc(w.since) + " " + esc(ago(i.since)) + (i.ends ? " · " + esc(w.ends) + " " + esc(new Date(i.ends * 1000).toLocaleTimeString()) : "") +
+  const clock = t => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const when = x => x.state === "announced" ? w.announced + (x.starts ? " · " + w.starts + " " + clock(x.starts) : "")
+    : (x.since ? w.since + " " + ago(x.since) : "") + (x.ends ? " · " + w.ends + " " + clock(x.ends) : "");
+  const bits = list => list.filter(Boolean).map(esc).join(" · ");
+  const now = inv.map(i => '<div class="zone-row"><div><strong>' + esc(w.kind.invasion) + " · " + esc(i.name || "#" + i.zone) + (i.site ? " (" + esc(i.site) + ")" : "") +
+      '</strong><div class="meta">' + bits([i.kind, i.level ? w.level + " " + i.level : "", i.wave ? w.wave + " " + i.wave : "", when(i)]) +
       '</div></div><div class="meta">' + count(i.bots) + " bots</div></div>")
-    .concat(rush.map(r => '<div class="zone-row"><div><strong>' + esc(w.kind.rush) + " · " + esc(r.what || r.name || "#" + r.zone) + '</strong><div class="meta">' +
-      esc(w.since) + " " + esc(ago(r.since)) + '</div></div><div class="meta">' + count(r.bots) + " bots</div></div>")).join("");
+    .concat(rush.map(r => '<div class="zone-row"><div><strong>' + esc(w.kind.rush) + " · " + esc(r.what || "") + " · " + esc(r.area || r.name || "#" + r.zone) +
+      '</strong><div class="meta">' + bits([r.area && r.name ? r.name : "", r.level ? w.level + " " + r.level : "", r.nodes != null ? r.nodes + " " + w.nodes : "", when(r)]) +
+      '</div></div><div class="meta">' + count(r.bots) + " bots</div></div>")).join("");
+  const queue = guilds.some(g => g.orders_open != null);   // CoA World serves an order at once: no queue, orders_open null
   const guildRows = guilds.slice().sort((a, b) => (b.online || 0) - (a.online || 0)).map(g => "<tr><td>&lt;" + esc(g.name) + '&gt;</td><td class="r">' + count(g.members) +
-    '</td><td class="r">' + count(g.bots) + '</td><td class="r">' + count(g.online) + '</td><td class="r">' + money(g.bank_gold) + '</td><td class="r">' + count(g.orders_open) + "</td></tr>").join("");
-  const orderRows = gorders.map(o => "<tr><td>" + qualityName(o.name || "#" + o.item, o.quality) + " × " + count(o.count) + '<div class="meta">&lt;' + esc(o.guild) +
-    "&gt;</div></td><td>" + esc(w.guildOrderState[o.state] || o.state) + '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
+    '</td><td class="r">' + count(g.bots) + '</td><td class="r">' + count(g.online) + '</td><td class="r">' + money(g.bank_gold) +
+    (queue ? '</td><td class="r">' + count(g.orders_open) : "") + "</td></tr>").join("");
+  const orderRows = gorders.slice().sort((a, b) => b.at - a.at).map(o => "<tr><td>" + qualityName(o.name || "#" + o.item, o.quality) + " × " + count(o.count) +
+    '<div class="meta">&lt;' + esc(o.guild) + "&gt;" + (o.by ? " · " + esc(w.servedBy) + " " + esc(o.by) : "") + "</div></td><td>" + esc(w.guildOrderState[o.state] || o.state) +
+    '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
   const line = e => '<tr><td class="meta">' + esc(ago(e.at)) + "</td><td>" + (e.bot ? "<strong>" + esc(e.bot) + "</strong> " : "") + esc(e.text) + "</td></tr>";
   const lastFew = recentEvents(["invasion", "rush", "guild", "server_first"]).slice(0, 15).map(e => '<tr><td class="meta">' + esc(ago(e.at)) +
     '</td><td><span style="color:' + (KIND_COLORS[e.kind] || "var(--text-muted)") + '">' + esc(w.kind[e.kind] || e.kind) + "</span></td><td>" +
@@ -176,12 +186,12 @@ function vivantMonde(body, w) {
   const table = (head, rows, why) => rows ? '<div class="scroll"><table>' + (head ? "<thead><tr>" + head + "</tr></thead>" : "") + "<tbody>" + rows + "</tbody></table></div>"
     : '<p class="empty">' + esc(why) + "</p>";
   body.innerHTML = topicError(d) + vivantFigures([[w.invasionsNow, num(inv.length), ""], [w.rushesNow, num(rush.length), ""], [w.guilds, num(guilds.length), ""],
-    [w.guildOrders, num(gorders.filter(o => o.state === "open").length), w.openOrders.toLowerCase()],
+    [w.guildOrders, num(gorders.length), w.sinceStart],
     [w.stuck24, count(rec.stuck), rec.events ? w.fromEvents : ""], [w.unstuck24, count(rec.unstuck), rec.events ? w.fromEvents : ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.happening) + "</h2>" + (now || '<p class="empty">' + esc(w.nothingNow) + "</p>") + "</section>" +
     '<section class="card"><h2>' + esc(w.firsts) + "</h2>" + table("", firsts.slice(0, 12).map(line).join(""), w.noFirst) + "</section></div>" +
-    '<div class="grid two"><section class="card"><h2>' + esc(w.guilds) + "</h2>" + table("<th></th><th class=\"r\">" + esc(w.members) + '</th><th class="r">Bots</th><th class="r">' +
-      esc(w.onlineCol) + '</th><th class="r">' + esc(w.bank) + '</th><th class="r">' + esc(w.openOrders) + "</th>", guildRows, w.noGuild) + "</section>" +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.guilds) + "</h2>" + table("<th></th><th class=\"r\">" + esc(w.members) + '</th><th class="r">' + esc(w.botsOnline) + '</th><th class="r">' +
+      esc(w.onlineCol) + '</th><th class="r">' + esc(w.bank) + "</th>" + (queue ? '<th class="r">' + esc(w.openOrders) + "</th>" : ""), guildRows, w.noGuild) + "</section>" +
     '<section class="card"><h2>' + esc(w.guildOrders) + "</h2>" + table("", orderRows, w.noGuildOrder) + "</section></div>" +
     '<section class="card"><h2>' + esc(w.highlights) + "</h2>" + table("", lastFew, w.noHighlight) + "</section>";
 }
@@ -210,12 +220,13 @@ function vivantEconomy(body, w) {
     '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
   const refused = orders.filter(o => o.state === "refused").length;
   const smeltRows = (d.smelt_24h || []).map(r => "<tr><td>" + qualityName(r.name || "#" + r.item, r.quality) + '</td><td class="r">' + count(r.count) + "</td></tr>").join("");
-  const deRows = (d.disenchant_24h || []).map(r => "<tr><td>" + qualityName(r.name || "#" + r.item, r.quality) + (r.from ? '<div class="meta">' + esc(w.fromItems(num(r.from))) + "</div>" : "") +
-    '</td><td class="r">' + count(r.count) + "</td></tr>").join("");
+  const deRow = (r, from) => "<tr><td>" + qualityName(r.name || "#" + r.item, r.quality) + (r.from ? '<div class="meta">' + esc(from(num(r.from))) + "</div>" : "") +
+    '</td><td class="r">' + count(r.count) + "</td></tr>";
+  const deRows = (d.disenchant_24h || []).map(r => deRow(r, w.fromItems)).concat((d.prospect_24h || []).map(r => deRow(r, w.fromOre))).join("");
   const pairs = rows => '<div class="scroll"><table><tbody>' + rows.map(p => "<tr><td>" + esc(p[0]) + '</td><td class="r">' + p[1] + "</td></tr>").join("") + "</tbody></table></div>";
   const c = d.clock, a = d.ahbot_24h;
   const clockHtml = !c ? '<p class="empty">' + esc(w.soon) + "</p>" : '<p class="meta">' + esc(c.enabled ? w.clockOn : w.clockOff) + "</p>" +
-    pairs([[w.offlineAdded, c.offline_added_s == null ? "–" : duration(c.offline_added_s / 60) + " h"], [w.soldClock, count(c.sold_24h)],
+    pairs([[w.offlineAdded, c.offline_added_s == null ? "–" : duration(c.offline_added_s / 60) + " h"], [w.resumed, count(c.resumed)], [w.soldClock, count(c.sold_24h)],
       [w.expired, count(c.expired_24h)], [w.relisted, count(c.relisted_24h)]]);
   const ahHtml = !a ? '<p class="empty">' + esc(w.soon) + "</p>" :
     pairs([[w.listed, count(a.listed)], [w.bought, count(a.bought)], [w.goldIn, money(a.gold_in)], [w.goldOut, money(a.gold_out)]]);

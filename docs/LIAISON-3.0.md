@@ -145,3 +145,17 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
 - **Économie** : fonte (`smelt_24h`), désenchantement (`disenchant_24h`, avec `from`), horloge des enchères (`clock` : enabled, offline_added_s, sold/expired/relisted_24h) et AHBot (`ahbot_24h` : listed, bought, gold_in, gold_out). Noms proposés à CoA Economie ; absents ou `null`, la carte dit « arrive avec CoA Bots 3.0 ».
 - **Santé** : `tick_ms.p95` (SquidBot 0926f235). `stuck` reste `null` chez SquidBot : la carte et le compteur prennent les events stuck/unstuck de Monde sur 24 h. **Logs en direct** : les 120 dernières lignes de CoaBots.log (64 Ko lus depuis la fin), filtrables, erreurs en rouge, relues toutes les 15 s. Page privée seulement.
 - Commandes aux bots : toujours en lecture seule. Elles viendront par la liste blanche RA du §4.
+
+## 10. Formats livrés par les modules (09/11)
+- **CoA Economie** (coa-3.0-eco ed530e06), toujours `squidbot.economy/1` :
+  - `smelt_24h` [{item, count}], `disenchant_24h` et `prospect_24h` [{item, count, from}] (pour la prospection, `from` = minerais, 5 par prospection). Le dashboard les montre dans une carte « Désenchantement et prospection ».
+  - `clock` {enabled, offline_added_s, resumed (enchères décalées au démarrage), expired_24h, sold_24h (joueurs et bots), relisted_24h: null (pas de remise en vente)}.
+  - `ahbot_24h` {listed, bought, gold_in (net de la taxe), gold_out}, en cuivre. `orders[]` gagne `skill` (0 si refusée) et `kind` ("player").
+  - Un compteur vaut 0 ou [] quand sa brique est coupée.
+- **CoA Monde** (coa-3.0-monde 20b305f5), `monde.json`, `squidbot.monde/1`, every 30, activé par `AiPlayerbot.CoaWorld.StateFile.Enable = 1` (coupé par défaut) :
+  - `invasions[]` : zone, map, kind, site, state ("announced" | "running"), level, wave, since (null si annoncée), starts (null si en cours), ends, bots.
+  - `rushes[]` (au plus une) : what, zone, map, area (sous-zone), level, nodes, since, ends, bots.
+  - `guilds[]` : guildes avec quelqu'un en ligne, 50 au plus ; `bots` = bots en ligne, `online` = tous ; `bank_gold` en cuivre ; `orders_open` toujours null (une commande est servie tout de suite), la colonne est donc masquée.
+  - `guild_orders[]` : les 20 dernières depuis le démarrage ; state shared | crafted | bought | none, `by` = bot qui l'a servie.
+  - `server_firsts[]` : les 20 derniers {what, by, guild, at} ; `recovery_24h` {stuck, unstuck}.
+  - Pas encore passé au banc côté Monde : testé ici avec des fichiers à ce format sur le royaume d'essai.
