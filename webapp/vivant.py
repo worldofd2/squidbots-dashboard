@@ -170,10 +170,10 @@ class Vivant:
         given = (world.get("health") or {}).get("ramp")
         if isinstance(given, dict) and "done_at" in given:
             # CoA SquidBot: tick_ms is null until done_at + after_s, then measured from there (its max included).
-            # A realm without random bots (target 0) never ramps: its tick stays null, shown "–".
+            # Without random bots (target 0) done_at is set at the module's first check: the same 300 s, then the tick.
             done, after = given.get("done_at"), int(given.get("after_s") or RAMP_AFTER)
             return {"target": given.get("target"), "online": online, "doneAt": done, "until": done + after if done else None,
-                    "ramping": bool(given.get("target")) and (not done or (at or 0) < done + after), "source": "module"}
+                    "ramping": not done or (at or 0) < done + after, "source": "module"}
         target = self._asked()
         start = world.get("serverStart")
         if start != self.ramp["start"]:
