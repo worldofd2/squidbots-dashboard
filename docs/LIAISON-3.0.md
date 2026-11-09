@@ -210,3 +210,11 @@ Chaque module écrit dans son propre fichier : deux modules qui écrivent le mê
 **Dungeon Clear → `runs.jsonl`** (§3, inchangé) : une ligne par run `dc on` réel, avec `bossTimeline` et `comp`. Il ajoute `instance` pour que le dashboard rattache la ligne au run de SquidBot.
 
 **Dashboard** : tuiles (runs du jour, terminés, wipes, boss tués, groupes en cours, bots en donjon = `everyone.places.dungeon + raid` + bots des donjons simulés). En dessous : « En cours » (réels, avec DC marqué, puis simulés), « Par donjon » et « Derniers runs » (détail DC quand il existe). Plus aucune donnée factice dès qu'un des trois blocs existe.
+
+## 14. Plus de chiffres factices pour les joueurs (09/11, décision du Pilote)
+- Quand le royaume n'écrit pas un fichier, la page dit quelle option l'active : « active <clé> = 1 dans playerbots.conf (avec AiPlayerbot.CoaDataFiles = 1) ». Les clés : CoaLive.DataFile.Enable (world), CoaEconomy.DataFile.Enable (economy), CoaWorld.StateFile.Enable (monde), CoaWorld.Events.Enable (events).
+- Pour les groupes, elle affiche « pas encore de données », puis les derniers runs de DC dès qu'il y en a. Jamais de zéro inventé.
+- Les données factices ne servent plus que sur un royaume d'essai : `"vivantDemo": true` dans dashboard.json.
+- PerfMon coupé : la page donne la commande (`.playerbots pmon toggle`, MJ) et la clé `AiPlayerbot.PerfMonEnabled = 1`.
+- Les courbes sur 6 h (tick, bots en ligne) sont gardées dans `data/<royaume>/vivant-world.json` et reprises au redémarrage du dashboard.
+- runs.jsonl (DC) : rotation à 5 Mo en gardant le `.1`, comme events.jsonl.

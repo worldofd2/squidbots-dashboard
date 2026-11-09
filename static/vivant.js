@@ -13,7 +13,10 @@ const VIVANT_WORDS = {
     demoTab: "Made-up figures: nothing on this tab comes from the server yet.",
     everyone: "Everyone online", allChars: "Characters online", whoCols: ["Players", "Alts", "Bots", "All"], split: (p, a, b) => p + " players · " + a + " alts · " + b + " bots",
     place: { arena: "Arena", battleground: "Battleground", raid: "Raid", dungeon: "Dungeon", capital: "Capital", world: "Out in the world" },
-    raidPart: n => "of which " + n + " in a raid", everyoneHelp: "Players, their alts and party bots, and the random bots; each one counted once, in the first place that fits: arena, battleground, raid, dungeon, capital, world.", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
+    raidPart: n => "of which " + n + " in a raid", everyoneHelp: "Players, their alts and party bots, and the random bots; each one counted once, in the first place that fits: arena, battleground, raid, dungeon, capital, world.", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy. Turn it on with .playerbots pmon toggle (game master, in game or at the world console), or AiPlayerbot.PerfMonEnabled = 1 in playerbots.conf.",
+    missing: (what, key) => "No " + what + " from this realm: turn on " + key + " = 1 in playerbots.conf (with AiPlayerbot.CoaDataFiles = 1), then restart the realm.",
+    noDataYet: "No data yet: real and simulated dungeon groups come with CoA Bots 3.0 (CoA SquidBot, CoA World, Dungeon Clear).",
+    files: { world: "population and health file (world.json)", economy: "economy file (economy.json)", monde: "world life file (monde.json)", events: "journal (events.jsonl)" },
     zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)", soulsOff: "Souls are off on this realm (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["None", "“Bot”", "From the list"], surnameHelp: ["Bots show their first name only.", "Every bot is named “First Bot” (as in 2.x).", n => "A family name per bot, drawn once from a list of " + n + "."],
     mostWorn: "Most worn",
@@ -57,7 +60,10 @@ const VIVANT_WORDS = {
     demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.",
     everyone: "Tout le monde en ligne", allChars: "Personnages en ligne", whoCols: ["Joueurs", "Alts", "Bots", "Total"], split: (p, a, b) => p + " joueurs · " + a + " alts · " + b + " bots",
     place: { arena: "Arène", battleground: "Champ de bataille", raid: "Raid", dungeon: "Donjon", capital: "Capitale", world: "Dans le monde" },
-    raidPart: n => "dont " + n + " en raid", everyoneHelp: "Les joueurs, leurs alts et bots de groupe, et les bots aléatoires ; chacun compté une fois, au premier lieu qui convient : arène, champ de bataille, raid, donjon, capitale, monde.", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
+    raidPart: n => "dont " + n + " en raid", everyoneHelp: "Les joueurs, leurs alts et bots de groupe, et les bots aléatoires ; chacun compté une fois, au premier lieu qui convient : arène, champ de bataille, raid, donjon, capitale, monde.", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie. Active-le avec .playerbots pmon toggle (maître de jeu, en jeu ou à la console du monde), ou AiPlayerbot.PerfMonEnabled = 1 dans playerbots.conf.",
+    missing: (what, key) => "Pas de " + what + " sur ce royaume : active " + key + " = 1 dans playerbots.conf (avec AiPlayerbot.CoaDataFiles = 1), puis redémarre le royaume.",
+    noDataYet: "Pas encore de données : les groupes réels et simulés arrivent avec CoA Bots 3.0 (CoA SquidBot, CoA Monde, Dungeon Clear).",
+    files: { world: "fichier de population et de santé (world.json)", economy: "fichier d’économie (economy.json)", monde: "fichier de vie du monde (monde.json)", events: "journal (events.jsonl)" },
     zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)", soulsOff: "Les âmes sont coupées sur ce royaume (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["Aucun", "« Bot »", "Liste"], surnameHelp: ["Les bots ne montrent que leur prénom.", "Chaque bot s'appelle « Prénom Bot » (comme en 2.x).", n => "Un nom de famille par bot, tiré une fois pour toutes d'une liste de " + n + "."],
     mostWorn: "Les plus portés",
@@ -123,7 +129,16 @@ function renderVivant() {
     (VIVANT.stale && VIVANT.stale.length ? '<div class="banner">' + esc(w.stale(VIVANT.stale.join(", "))) + "</div>" : "");
   const typing = document.activeElement && document.activeElement.id === "vvLogQ";
   host.innerHTML = banners + '<div class="tabs" role="tablist">' + tabs + '</div><div id="vivantBody"></div>';
-  ({ population: vivantPopulation, monde: vivantMonde, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth, events: vivantEvents })[VIVANT_TAB](document.getElementById("vivantBody"), w);
+  const vbody = document.getElementById("vivantBody");
+  // A file the realm does not write: say which option makes it, never made-up or zero figures (the Pilot, 09/11).
+  const topic = { population: "world", monde: "monde", economy: "economy", groups: "groups", health: "world", events: "events" }[VIVANT_TAB];
+  if ((VIVANT.missing || []).includes(topic)) {
+    const say = topic === "groups" ? w.noDataYet : w.missing(w.files[topic], OPTION_KEYS[topic]);
+    vbody.innerHTML = '<section class="card"><p class="empty">' + esc(say) + "</p></section>" + (VIVANT_TAB === "health" ? liveLogCard(w) : "");
+    if (VIVANT_TAB === "health") showLiveLog(w);
+    // Dungeon Clear's finished runs (runs.jsonl) can come before the live groups: show them.
+    if (topic === "groups" && ((VIVANT.groups || {}).last || []).length) vbody.insertAdjacentHTML("beforeend", lastRunsCard(w, VIVANT.groups.last));
+  } else ({ population: vivantPopulation, monde: vivantMonde, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth, events: vivantEvents })[VIVANT_TAB](vbody, w);
   const q = document.getElementById("vvLogQ");
   if (q && typing) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
 }
@@ -187,6 +202,8 @@ function vivantPopulation(body, w) {
 }
 
 const DAY = 86400;
+const OPTION_KEYS = { world: "AiPlayerbot.CoaLive.DataFile.Enable", economy: "AiPlayerbot.CoaEconomy.DataFile.Enable",
+  monde: "AiPlayerbot.CoaWorld.StateFile.Enable", events: "AiPlayerbot.CoaWorld.Events.Enable" };
 // Battlegrounds and arenas (map ids): world.json counts their bots under "pvp", never under "dungeon".
 const BG_MAPS = new Set([30, 489, 529, 566, 607, 628, 559, 562, 572, 617, 618]);
 const recentEvents = (kinds, span) => (VIVANT.events || []).filter(e => kinds.includes(e.kind) && (!span || Date.now() / 1000 - e.at < span));
@@ -301,6 +318,15 @@ function vivantEconomy(body, w) {
   lineChart(document.getElementById("vvAh"), d.history || [], { value: p => p.auctions, label: w.auctionsWeek, unit: "" });
 }
 
+// Dungeon Clear's finished runs (runs.jsonl lines: camelCase, times in ms), newest first.
+function lastRunsCard(w, runs) {
+  const label = r => esc(r.dungeonName || r.dungeon) + (r.difficulty ? ' <span class="meta">' + esc(w.difficulty[r.difficulty] || "") + "</span>" : "");
+  const rows = runs.map(r => "<tr><td>" + label(r) + '<div class="meta">' + esc((r.comp || []).map(c => c.name).concat(r.players || []).join(", ")) +
+    "</div></td><td>" + esc(w.result[r.result] || r.result) + ' <span class="meta">' + r.bossesKilled + "/" + r.bossesTotal + '</span></td><td class="r">' +
+    duration(r.durationS) + '</td><td class="r">' + (r.wipes || 0) + '</td><td class="r meta">' + esc(ago(r.endedAtMs / 1000)) + "</td></tr>").join("");
+  return '<section class="card"><h2>' + esc(w.lastRuns) + '</h2><div class="scroll"><table><tbody>' + rows + "</tbody></table></div></section>";
+}
+
 function vivantGroups(body, w) {
   // Field names are Dungeon Clear's (runId, dungeonName, startedAtMs, bossesKilled…): see LIAISON-3.0.md.
   const d = VIVANT.groups || {};
@@ -378,8 +404,7 @@ function vivantHealth(body, w) {
     '<div class="grid two"><section class="card"><h2>' + esc(w.strategies) + '</h2><div id="vvStrat"></div></section>' +
     '<section class="card"><h2>' + esc(w.stuckList) + "</h2>" + (!h.stuck ? stuckJournal : stuck ? '<div class="scroll"><table><tbody>' + stuck + "</tbody></table></div>"
       : '<p class="empty">' + esc(w.noStuck) + "</p>") + '<p class="meta">' + esc(w.actionsSoon) + "</p></section></div>" +
-    '<section class="card"><h2>' + esc(w.liveLog) + '</h2><p class="meta">' + esc(w.logHelp) + '</p><input id="vvLogQ" type="search" placeholder="' + esc(w.logFilter) +
-      '" value="' + esc(VIVANT_LOGQ) + '"><pre class="livelog" id="vvLog"></pre></section>';
+    liveLogCard(w);
   showLiveLog(w);
   const points = h.history || [];
   lineChart(document.getElementById("vvTick"), points.filter(p => p.tick != null), { value: p => p.tick, label: w.tickChart, unit: " ms", waiting: w.curveWait });
@@ -387,6 +412,11 @@ function vivantHealth(body, w) {
   if (!h.by_strategy_us) { document.getElementById("vvStrat").innerHTML = '<p class="empty">' + esc(w.perfOff) + "</p>"; return; }
   rankedList(document.getElementById("vvStrat"), h.by_strategy_us.map(s => ({ name: s.name, us: s.us })),
     { value: r => r.us, unit: "µs", line2: () => "" });
+}
+
+function liveLogCard(w) {
+  return '<section class="card"><h2>' + esc(w.liveLog) + '</h2><p class="meta">' + esc(w.logHelp) + '</p><input id="vvLogQ" type="search" placeholder="' + esc(w.logFilter) +
+    '" value="' + esc(VIVANT_LOGQ) + '"><pre class="livelog" id="vvLog"></pre></section>';
 }
 
 function showLiveLog(w) {

@@ -1074,7 +1074,8 @@ class Context:
         self.stats = Stats(self)
         self.pvp = Pvp(self)
         self.market = market.Market(mysql, self)
-        self.vivant = vivant.Vivant(self, mysql, SETTINGS.get("squidbotDir"))
+        # Made-up figures only on a test realm ("vivantDemo": true in dashboard.json); players see what to turn on.
+        self.vivant = vivant.Vivant(self, mysql, SETTINGS.get("squidbotDir"), demo=bool(SETTINGS.get("vivantDemo")))
         self._armory = None
         self.armory_error = None
 

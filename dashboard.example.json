@@ -33,6 +33,8 @@
 
   "_comment_squidbot": "Optional: the folder of SquidBot's data files (economy.json, world.json…), when AiPlayerbot.CoaDataDir moves it. Empty: the squidbot folder beside CoaBots.log.",
   "squidbotDir": "",
+  "_comment_vivant_demo": "Test realms only: true fills each Living world file the realm does not write with made-up figures, under a banner. Without it the page says which option turns the file on.",
+  "vivantDemo": false,
 
   "_comment_dates": "uptimeSince counts the server hours from that date; countFrom makes every figure start there instead of at the bots' creation.",
   "uptimeSince": "2026-09-01 00:00:00",

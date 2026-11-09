@@ -24,7 +24,7 @@ RAMP_AFTER = 300    # ...and the tick is counted from 5 minutes later (the user,
 
 
 class Vivant:
-    def __init__(self, ctx, query=None, squidbot_dir=None):
+    def __init__(self, ctx, query=None, squidbot_dir=None, demo=False):
         self.ctx, self.query = ctx, query
         self.items = {}     # item entry -> (name, quality), read once from item_template
         # The module sends the auction count of the moment: the dashboard keeps the curve (a point per 15 min, 48 h).
@@ -33,7 +33,14 @@ class Vivant:
             self.history = json.load(open(self.history_file, encoding="utf-8"))
         except (OSError, ValueError):
             self.history = []
-        self.world_history = []     # tick and bots online, a point per 5 min over 6 h (memory only)
+        self.demo = demo            # made-up figures for a missing file: the dashboard's test realm only
+        # Tick and bots online, a point per 5 min over 6 h, kept on disk so a restart of the dashboard keeps the curves.
+        self.world_file = ctx.file("vivant-world.json")
+        try:
+            self.world_history = [p for p in json.load(open(self.world_file, encoding="utf-8"))
+                                  if isinstance(p, dict) and time.time() - p.get("ts", 0) < WORLD_KEEP]
+        except (OSError, ValueError):
+            self.world_history = []
         self.ramp = {"start": None, "done": None}   # this server start, and when its bots were all in
         self.target = (0, None)                     # (read at, bots asked for in playerbots.conf)
         # The module's AiPlayerbot.CoaDataDir, by default <LogsDir>/squidbot: the folder of the realm's CoaBots.log.
@@ -108,12 +115,16 @@ class Vivant:
                 self.resumed = now
             self.asked = now
             self._watch(TOPICS)
-            out = {"demo": [], "stale": []}
+            out = {"demo": [], "stale": [], "missing": []}
             for topic in TOPICS:
                 data = self._read(topic)
                 if data is None:
-                    data = DEMO[topic](now)
-                    out["demo"].append(topic)
+                    if self.demo:
+                        data = DEMO[topic](now)
+                        out["demo"].append(topic)
+                    else:
+                        data = {}
+                        out["missing"].append(topic)
                 elif data.get("at") and now - float(data["at"]) > 3 * data.get("every", 10) and now - self.resumed > 3 * data.get("every", 10) + WATCH_EVERY:
                     out["stale"].append(topic)
                 out[topic] = data
@@ -131,9 +142,12 @@ class Vivant:
                 health.setdefault("history", self._remember_world(world))
                 out["world"] = dict(world, health=health)
             events = self._events()
-            if events is None:
+            if events is None and self.demo:
                 events = _demo_events(now)
                 out["demo"].append("events")
+            elif events is None:
+                events = []
+                out["missing"].append("events")
             out["events"] = events
             out["log"] = tail_text(self.ctx.coa_log, 120)
             last = self._last_runs()
@@ -201,7 +215,14 @@ class Vivant:
         if (world.get("ramp") or {}).get("ramping"):
             tick = None     # the curve keeps the bots online, not the start-up's tick
         if at and (not self.world_history or at - self.world_history[-1]["ts"] >= WORLD_EVERY):
-            self.world_history = [p for p in self.world_history if at - p["ts"] < WORLD_KEEP] +                 [{"ts": int(at), "tick": tick, "online": world.get("online")}]
+            self.world_history = [p for p in self.world_history if at - p["ts"] < WORLD_KEEP] + [{"ts": int(at), "tick": tick, "online": world.get("online")}]
+            try:
+                tmp = self.world_file + ".tmp"
+                with open(tmp, "w", encoding="utf-8") as handle:
+                    json.dump(self.world_history, handle)
+                os.replace(tmp, self.world_file)
+            except OSError:
+                pass
         return self.world_history
 
     def _name_items(self, doc, keys):
