@@ -899,3 +899,6 @@ dialog.armory-popup { width: min(1100px, calc(100vw - 32px)); max-width: none; m
   border-radius: 6px; color: var(--text-primary); font: 11.5px/1.45 ui-monospace, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
 .livelog .log-bad { color: #ff6b6b; }
 #vvLogQ { width: 100%; max-width: 320px; }
+/* Server > Events: ".events li" (padding 7px 0) beat ".event"'s room for the dot, which sat on the date. */
+.events li.event { padding-left: 17px; align-items: center; }
+.events li.event::before { top: 50%; transform: translateY(-50%); }
