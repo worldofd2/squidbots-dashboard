@@ -9,7 +9,8 @@ const VIVANT_WORDS = {
     kind: { invasion: "Invasion", rush: "Rush", server_first: "Server first", guild: "Guild", stuck: "Stuck", unstuck: "Unstuck", boss: "Boss", wipe: "Wipe", order: "Order", error: "Error" },
     demo: t => "Made-up figures for " + t + ": the server does not write these files yet (CoA Bots 3.0).",
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
-    online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
+    online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", inBg: "In battlegrounds and arenas", pvpAll: n => n + " in PvP in all",
+    demoTab: "Made-up figures: nothing on this tab comes from the server yet.", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
     zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)", soulsOff: "Souls are off on this realm (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["None", "“Bot”", "From the list"], surnameHelp: ["Bots show their first name only.", "Every bot is named “First Bot” (as in 2.x).", n => "A family name per bot, drawn once from a list of " + n + "."],
     mostWorn: "Most worn",
@@ -47,7 +48,8 @@ const VIVANT_WORDS = {
     kind: { invasion: "Invasion", rush: "Ruée", server_first: "Premier du serveur", guild: "Guilde", stuck: "Coincé", unstuck: "Décoincé", boss: "Boss", wipe: "Wipe", order: "Commande", error: "Erreur" },
     demo: t => "Données factices pour " + t + " : le serveur n'écrit pas encore ces fichiers (CoA Bots 3.0).",
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
-    online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
+    online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", inBg: "En champ de bataille ou arène", pvpAll: n => n + " en JcJ au total",
+    demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
     zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)", soulsOff: "Les âmes sont coupées sur ce royaume (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["Aucun", "« Bot »", "Liste"], surnameHelp: ["Les bots ne montrent que leur prénom.", "Chaque bot s'appelle « Prénom Bot » (comme en 2.x).", n => "Un nom de famille par bot, tiré une fois pour toutes d'une liste de " + n + "."],
     mostWorn: "Les plus portés",
@@ -125,7 +127,7 @@ function vivantPopulation(body, w) {
   body.innerHTML = topicError(d) + vivantFigures([[w.online, num(d.online), ""], [w.players, num(d.players), ""],
     [w.inCapitals, num(capitals), Math.round(capitals / Math.max(1, d.online) * 100) + " %"], [w.busy, num(acts.dungeon), ""],
     h.stuck ? [w.stuck, num(h.stuck.length), ""] : [w.stuck24, (stuckDay() || {}).count || "–", stuckDay() ? (stuckDay().journal ? w.fromEvents : "") : w.soon],
-    [w.zonesUsed, num(zones.length), ""]]) +
+    [w.inBg, num(zones.filter(z => BG_MAPS.has(z.map)).reduce((s, z) => s + z.bots, 0)), acts.pvp == null ? "" : w.pvpAll(num(acts.pvp))]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
     '<h2 class="later">' + esc(w.capitals) + '</h2><div class="splits" id="vvCaps"></div>' +
@@ -154,6 +156,8 @@ function vivantPopulation(body, w) {
 }
 
 const DAY = 86400;
+// Battlegrounds and arenas (map ids): world.json counts their bots under "pvp", never under "dungeon".
+const BG_MAPS = new Set([30, 489, 529, 566, 607, 628, 559, 562, 572, 617, 618]);
 const recentEvents = (kinds, span) => (VIVANT.events || []).filter(e => kinds.includes(e.kind) && (!span || Date.now() / 1000 - e.at < span));
 // Stuck bots over 24 h: CoA World's own count (monde.json) when it writes one; the 200 journal lines cover only minutes on a big realm.
 function stuckDay() {
@@ -264,6 +268,7 @@ function vivantEconomy(body, w) {
 function vivantGroups(body, w) {
   // Field names are Dungeon Clear's (runId, dungeonName, startedAtMs, bossesKilled…): see LIAISON-3.0.md.
   const d = VIVANT.groups || {};
+  const fake = (VIVANT.demo || []).includes("groups") ? '<div class="banner">' + esc(w.demoTab) + "</div>" : "";
   const t = d.today || {};
   const sec = msTime => msTime / 1000;
   const label = r => esc(r.dungeonName || r.dungeon) + (r.difficulty ? ' <span class="meta">' + esc(w.difficulty[r.difficulty] || "") + "</span>" : "");
@@ -277,7 +282,7 @@ function vivantGroups(body, w) {
   const last = (d.last || []).map(r => "<tr><td>" + label(r) + '<div class="meta">' + esc((r.comp || []).map(c => c.name).concat(r.players || []).join(", ")) +
     "</div></td><td>" + esc(w.result[r.result] || r.result) + ' <span class="meta">' + r.bossesKilled + "/" + r.bossesTotal + '</span></td><td class="r">' +
     duration(r.durationS) + '</td><td class="r">' + (r.wipes || 0) + '</td><td class="r meta">' + esc(ago(sec(r.endedAtMs))) + "</td></tr>").join("");
-  body.innerHTML = topicError(d) + vivantFigures([[w.runsToday, num(t.runs), ""], [w.cleared, num(t.cleared), Math.round(t.cleared / Math.max(1, t.runs) * 100) + " %"],
+  body.innerHTML = fake + topicError(d) + vivantFigures([[w.runsToday, num(t.runs), ""], [w.cleared, num(t.cleared), Math.round(t.cleared / Math.max(1, t.runs) * 100) + " %"],
     [w.wipes, num(t.wipes), ""], [w.bossKills, num(t.bossKills), ""], [w.running, num((d.running || []).length), ""], [w.busy, num((d.running || []).reduce((s, r) => s + r.bots, 0)), "bots"]]) +
     '<section class="card"><h2>' + esc(w.running) + "</h2>" + (running || '<p class="empty">' + esc(w.noRun) + "</p>") + "</section>" +
     '<section class="card"><h2>' + esc(w.perDungeon) + '</h2><div class="scroll"><table><thead><tr><th>' + esc(w.dungeon) + '</th><th class="r">' +
