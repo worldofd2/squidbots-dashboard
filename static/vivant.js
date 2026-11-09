@@ -4,7 +4,7 @@
 
 const VIVANT_WORDS = {
   en: {
-    tabs: { population: "Population", economy: "Economy", groups: "Groups & dungeons", health: "Health", events: "Journal" },
+    tabs: { population: "Population", monde: "World life", economy: "Economy", groups: "Groups & dungeons", health: "Health", events: "Journal" },
     allKinds: "All", noEvent: "Nothing in the journal yet.", eventsHelp: "The newest 200 lines of events.jsonl, written by the server as things happen.",
     kind: { invasion: "Invasion", rush: "Rush", server_first: "Server first", guild: "Guild", stuck: "Stuck", unstuck: "Unstuck", boss: "Boss", wipe: "Wipe", order: "Order", error: "Error" },
     demo: t => "Made-up figures for " + t + ": the server does not write these files yet (CoA Bots 3.0).",
@@ -13,7 +13,19 @@ const VIVANT_WORDS = {
     zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)", soulsOff: "Souls are off on this realm (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["None", "“Bot”", "From the list"], surnameHelp: ["Bots show their first name only.", "Every bot is named “First Bot” (as in 2.x).", n => "A family name per bot, drawn once from a list of " + n + "."],
     mostWorn: "Most worn",
-    act: { quest: "Questing", grind: "Grinding", city: "In town", travel: "Travelling", fish: "Fishing", pvp: "PvP", dungeon: "Dungeon", idle: "Idle" },
+    act: { quest: "Questing", grind: "Grinding", camp: "Camping", city: "In town", travel: "Travelling", flight: "Flying", wander_random: "Wandering", wander_npc: "Visiting NPCs",
+      rest: "Resting", fish: "Fishing", gather: "Gathering", pvp: "PvP", dungeon: "Dungeon (simulated)", idle: "Idle" },
+    capitals: "Capitals", alliance: "Alliance", horde: "Horde", noCapital: "No bot in a capital right now.",
+    invasionsNow: "Invasions", rushesNow: "Rushes", guilds: "Guilds", guildOrders: "Guild orders", stuck24: "Stuck, 24 h", unstuck24: "Freed, 24 h",
+    happening: "Happening now", nothingNow: "No invasion or rush right now.", ends: "ends", members: "Members", onlineCol: "Online", bank: "Bank", openOrders: "Open orders",
+    noGuild: "No guild yet.", noGuildOrder: "No guild order.", firsts: "Server firsts", noFirst: "No server first yet.", highlights: "Latest highlights",
+    noHighlight: "Nothing yet in the journal.", fromEvents: "counted in events.jsonl", guildOrderState: { open: "open", done: "done", cancelled: "cancelled" },
+    smelt: "Smelting, 24 h", disenchant: "Disenchanting, 24 h", fromItems: n => "from " + n + " items", clock: "Auction clock",
+    clockOn: "Auctions run on game time: the hours the server is off are added to every auction.", clockOff: "Auctions run on real time (clock off).",
+    offlineAdded: "Added at the last start", expired: "Expired, 24 h", soldClock: "Sold, 24 h", relisted: "Relisted, 24 h",
+    ahbot: "Auction house bot, 24 h", listed: "Listed", bought: "Bought", goldIn: "Gold in", goldOut: "Gold out",
+    stuckEvents: "From the journal (stuck and freed)", liveLog: "Live log", logHelp: "The newest lines of CoaBots.log, read again every 15 s.", logFilter: "Filter",
+    noLog: "No CoaBots.log for this realm.", noMatch: "No line matches.",
     soul: { lazy: "Lazy", quester: "Quester", wanderer: "Wanderer", trader: "Trader", pvp: "PvP" },
     auctions: "Auctions", goldAll: "Gold in circulation", goldBots: "Held by bots", sold24: "Sold, 24 h", crafted24: "Crafted, 24 h", ordersTile: "Orders (last 50)", refusedN: n => n + " refused", goldWait: "first count within 10 min", needs: what => "Nothing yet: needs " + what + " in the module settings.", noAuction: "No auction right now.",
     categories: "Prices by category", cat: "Category", avg: "Average", band: "Low · usual · high", volume: "Sold 24 h",
@@ -29,7 +41,7 @@ const VIVANT_WORDS = {
     actionsSoon: "Commands to the bots (stop, resume, summon, unstuck) arrive with the module, through the world console.",
   },
   fr: {
-    tabs: { population: "Population", economy: "Économie", groups: "Groupes et donjons", health: "Santé", events: "Journal" },
+    tabs: { population: "Population", monde: "Vie du monde", economy: "Économie", groups: "Groupes et donjons", health: "Santé", events: "Journal" },
     allKinds: "Tout", noEvent: "Rien dans le journal pour l’instant.", eventsHelp: "Les 200 dernières lignes d’events.jsonl, écrites par le serveur au fil de l’eau.",
     kind: { invasion: "Invasion", rush: "Ruée", server_first: "Premier du serveur", guild: "Guilde", stuck: "Coincé", unstuck: "Décoincé", boss: "Boss", wipe: "Wipe", order: "Commande", error: "Erreur" },
     demo: t => "Données factices pour " + t + " : le serveur n'écrit pas encore ces fichiers (CoA Bots 3.0).",
@@ -38,7 +50,19 @@ const VIVANT_WORDS = {
     zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)", soulsOff: "Les âmes sont coupées sur ce royaume (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["Aucun", "« Bot »", "Liste"], surnameHelp: ["Les bots ne montrent que leur prénom.", "Chaque bot s'appelle « Prénom Bot » (comme en 2.x).", n => "Un nom de famille par bot, tiré une fois pour toutes d'une liste de " + n + "."],
     mostWorn: "Les plus portés",
-    act: { quest: "En quête", grind: "Farm", city: "En ville", travel: "En voyage", fish: "Pêche", pvp: "JcJ", dungeon: "Donjon", idle: "Inactifs" },
+    act: { quest: "En quête", grind: "Farm", camp: "Campent", city: "En ville", travel: "En voyage", flight: "En vol", wander_random: "Se promènent", wander_npc: "Chez les PNJ",
+      rest: "Se reposent", fish: "Pêche", gather: "Récolte", pvp: "JcJ", dungeon: "Donjon (simulé)", idle: "Inactifs" },
+    capitals: "Capitales", alliance: "Alliance", horde: "Horde", noCapital: "Aucun bot en capitale pour l’instant.",
+    invasionsNow: "Invasions", rushesNow: "Ruées", guilds: "Guildes", guildOrders: "Commandes de guilde", stuck24: "Coincés, 24 h", unstuck24: "Décoincés, 24 h",
+    happening: "En ce moment", nothingNow: "Aucune invasion ni ruée en ce moment.", ends: "fin", members: "Membres", onlineCol: "En ligne", bank: "Banque", openOrders: "Commandes ouvertes",
+    noGuild: "Aucune guilde pour l’instant.", noGuildOrder: "Aucune commande de guilde.", firsts: "Premiers du serveur", noFirst: "Aucun premier du serveur pour l’instant.", highlights: "Derniers faits marquants",
+    noHighlight: "Rien dans le journal pour l’instant.", fromEvents: "comptés dans events.jsonl", guildOrderState: { open: "ouverte", done: "livrée", cancelled: "annulée" },
+    smelt: "Fonte, 24 h", disenchant: "Désenchantement, 24 h", fromItems: n => "de " + n + " objets", clock: "Horloge des enchères",
+    clockOn: "Les enchères tournent sur le temps de jeu : les heures où le serveur est arrêté sont ajoutées à chaque enchère.", clockOff: "Les enchères tournent sur le temps réel (horloge coupée).",
+    offlineAdded: "Ajouté au dernier démarrage", expired: "Expirées, 24 h", soldClock: "Vendues, 24 h", relisted: "Remises en vente, 24 h",
+    ahbot: "Bot de l’hôtel des ventes, 24 h", listed: "Mises en vente", bought: "Achats", goldIn: "Or reçu", goldOut: "Or dépensé",
+    stuckEvents: "D’après le journal (coincés et décoincés)", liveLog: "Logs en direct", logHelp: "Les dernières lignes de CoaBots.log, relues toutes les 15 s.", logFilter: "Filtrer",
+    noLog: "Pas de CoaBots.log pour ce royaume.", noMatch: "Aucune ligne ne correspond.",
     soul: { lazy: "Paresseux", quester: "Quêteur", wanderer: "Flâneur", trader: "Commerçant", pvp: "JcJ" },
     auctions: "Enchères", goldAll: "Or en circulation", goldBots: "Détenu par les bots", sold24: "Vendus, 24 h", crafted24: "Fabriqués, 24 h", ordersTile: "Commandes (50 dernières)", refusedN: n => n + " refusée(s)", goldWait: "premier compte sous 10 min", needs: what => "Rien pour l’instant : il faut " + what + " dans les réglages du module.", noAuction: "Aucune enchère pour l’instant.",
     categories: "Prix par catégorie", cat: "Catégorie", avg: "Moyen", band: "Bas · usuel · haut", volume: "Vendus 24 h",
@@ -57,8 +81,9 @@ const VIVANT_WORDS = {
 const VW = () => VIVANT_WORDS[lang] || VIVANT_WORDS.en;
 let VIVANT = null, VIVANT_TAB = "population", vivantTimer = null;
 const SOUL_COLORS = { lazy: "var(--text-muted)", quester: "var(--gold)", wanderer: "#7d9cc4", trader: "var(--accent)", pvp: "var(--horde)" };
-const ACT_COLORS = { quest: "var(--gold)", grind: "#c96b3a", city: "var(--accent)", travel: "#7d9cc4", fish: "#3fa7d6",
-  pvp: "var(--horde)", dungeon: "#b36df2", idle: "var(--text-muted)" };
+const ACT_COLORS = { quest: "var(--gold)", grind: "#c96b3a", camp: "#a0522d", city: "var(--accent)", travel: "#7d9cc4", flight: "#9fb8d8",
+  wander_random: "#6b8f71", wander_npc: "#8fbf8f", rest: "#8a8070", fish: "#3fa7d6", gather: "#5aa05a", pvp: "var(--horde)", dungeon: "#b36df2", idle: "var(--text-muted)" };
+let VIVANT_LOGQ = "";
 
 async function loadVivant() {
   VIVANT = await getJson("/api/vivant").catch(error => ({ error: String(error) }));
@@ -82,8 +107,11 @@ function renderVivant() {
     esc(w.tabs[k]) + "</button>").join("");
   const banners = (VIVANT.demo && VIVANT.demo.length ? '<div class="banner">' + esc(w.demo(VIVANT.demo.join(", "))) + "</div>" : "") +
     (VIVANT.stale && VIVANT.stale.length ? '<div class="banner">' + esc(w.stale(VIVANT.stale.join(", "))) + "</div>" : "");
+  const typing = document.activeElement && document.activeElement.id === "vvLogQ";
   host.innerHTML = banners + '<div class="tabs" role="tablist">' + tabs + '</div><div id="vivantBody"></div>';
-  ({ population: vivantPopulation, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth, events: vivantEvents })[VIVANT_TAB](document.getElementById("vivantBody"), w);
+  ({ population: vivantPopulation, monde: vivantMonde, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth, events: vivantEvents })[VIVANT_TAB](document.getElementById("vivantBody"), w);
+  const q = document.getElementById("vvLogQ");
+  if (q && typing) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
 }
 
 function topicError(data) { return data && data.error ? '<div class="banner">' + esc(data.error) + "</div>" : ""; }
@@ -94,14 +122,21 @@ function vivantPopulation(body, w) {
   const capitals = zones.filter(z => z.capital).reduce((s, z) => s + z.bots, 0);
   body.innerHTML = topicError(d) + vivantFigures([[w.online, num(d.online), ""], [w.players, num(d.players), ""],
     [w.inCapitals, num(capitals), Math.round(capitals / Math.max(1, d.online) * 100) + " %"], [w.busy, num(acts.dungeon), ""],
-    [w.stuck, h.stuck ? num(h.stuck.length) : "–", h.stuck ? "" : w.soon], [w.zonesUsed, num(zones.length), ""]]) +
+    h.stuck ? [w.stuck, num(h.stuck.length), ""] : [w.stuck24, VIVANT.events ? num(recentEvents(["stuck"], DAY).length) : "–", VIVANT.events ? w.fromEvents : w.soon],
+    [w.zonesUsed, num(zones.length), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
+    '<h2 class="later">' + esc(w.capitals) + '</h2><div class="splits" id="vvCaps"></div>' +
     '<h2 class="later">' + esc(w.souls) + '</h2><div class="splits" id="vvSouls"></div>' +
     '<h2 class="later">' + esc(w.surnames) + '</h2><div id="vvSurname"></div></section></div>';
-  rankedList(document.getElementById("vvZones"), zones.map(z => ({ name: z.name || "#" + z.zone, bots: z.bots, capital: z.capital })),
-    { value: r => r.bots, unit: "bots", line2: r => (r.capital ? w.capital : "") });
-  splitBar(document.getElementById("vvActs"), Object.keys(acts).map(k => ({ label: w.act[k] || k, count: acts[k], color: ACT_COLORS[k] || "var(--gold)" })));
+  const sides = z => { const f = z.faction || {}; return f.alliance == null && f.horde == null ? "" : w.alliance + " " + num(f.alliance || 0) + " · " + w.horde + " " + num(f.horde || 0); };
+  rankedList(document.getElementById("vvZones"), zones.map(z => ({ name: z.name || "#" + z.zone, bots: z.bots, capital: z.capital, sides: sides(z) })),
+    { value: r => r.bots, unit: "bots", line2: r => [r.capital ? w.capital : "", r.sides].filter(Boolean).join(" · ") });
+  const caps = zones.filter(z => z.capital), capHost = document.getElementById("vvCaps");
+  if (!caps.length) capHost.innerHTML = '<p class="empty">' + esc(w.noCapital) + "</p>";
+  else splitBar(capHost, caps.map((z, i) => ({ label: z.name || "#" + z.zone, count: z.bots,
+    color: ["var(--gold)", "var(--horde)", "#7d9cc4", "#c96b3a", "var(--accent)", "#b36df2"][i % 6] })));
+  splitBar(document.getElementById("vvActs"), Object.keys(acts).filter(k => acts[k]).sort((a, b) => acts[b] - acts[a]).map(k => ({ label: w.act[k] || k, count: acts[k], color: ACT_COLORS[k] || "var(--gold)" })));
   const souls = d.souls, soulHost = document.getElementById("vvSouls");
   if (!souls) soulHost.innerHTML = '<p class="empty">' + esc((VIVANT.demo || []).includes("world") ? w.soonL1 : w.soulsOff) + "</p>";
   else splitBar(soulHost, Object.keys(SOUL_COLORS).map(k => ({ label: w.soul[k], count: souls[k] || 0, color: SOUL_COLORS[k] })));
@@ -114,6 +149,41 @@ function vivantPopulation(body, w) {
     (sn.mode === 2 && sn.top && sn.top.length ? '<p class="meta"><strong>' + esc(w.mostWorn) + '</strong></p><div id="vvSurnameTop"></div>' : "");
   if (sn.mode === 2 && sn.top && sn.top.length) rankedList(document.getElementById("vvSurnameTop"), sn.top.slice().sort((a, b) => b.bots - a.bots),
     { value: r => r.bots, unit: "bots", line2: () => "" });
+}
+
+const DAY = 86400;
+const recentEvents = (kinds, span) => (VIVANT.events || []).filter(e => kinds.includes(e.kind) && (!span || Date.now() / 1000 - e.at < span));
+
+function vivantMonde(body, w) {
+  const d = VIVANT.monde || {};
+  const inv = d.invasions || [], rush = d.rushes || [], guilds = d.guilds || [], gorders = d.guild_orders || [];
+  const rec = d.recovery_24h || { stuck: recentEvents(["stuck"], DAY).length, unstuck: recentEvents(["unstuck"], DAY).length, events: true };
+  const firsts = d.server_firsts && d.server_firsts.length ? d.server_firsts.map(f => ({ at: f.at, text: f.what, bot: f.by }))
+    : recentEvents(["server_first"]).map(e => ({ at: e.at, text: e.text, bot: e.bot }));
+  const now = inv.map(i => '<div class="zone-row"><div><strong>' + esc(w.kind.invasion) + " · " + esc(i.name || "#" + i.zone) + '</strong><div class="meta">' +
+      esc(i.kind || "") + " · " + esc(w.since) + " " + esc(ago(i.since)) + (i.ends ? " · " + esc(w.ends) + " " + esc(new Date(i.ends * 1000).toLocaleTimeString()) : "") +
+      '</div></div><div class="meta">' + count(i.bots) + " bots</div></div>")
+    .concat(rush.map(r => '<div class="zone-row"><div><strong>' + esc(w.kind.rush) + " · " + esc(r.what || r.name || "#" + r.zone) + '</strong><div class="meta">' +
+      esc(w.since) + " " + esc(ago(r.since)) + '</div></div><div class="meta">' + count(r.bots) + " bots</div></div>")).join("");
+  const guildRows = guilds.slice().sort((a, b) => (b.online || 0) - (a.online || 0)).map(g => "<tr><td>&lt;" + esc(g.name) + '&gt;</td><td class="r">' + count(g.members) +
+    '</td><td class="r">' + count(g.bots) + '</td><td class="r">' + count(g.online) + '</td><td class="r">' + money(g.bank_gold) + '</td><td class="r">' + count(g.orders_open) + "</td></tr>").join("");
+  const orderRows = gorders.map(o => "<tr><td>" + qualityName(o.name || "#" + o.item, o.quality) + " × " + count(o.count) + '<div class="meta">&lt;' + esc(o.guild) +
+    "&gt;</div></td><td>" + esc(w.guildOrderState[o.state] || o.state) + '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
+  const line = e => '<tr><td class="meta">' + esc(ago(e.at)) + "</td><td>" + (e.bot ? "<strong>" + esc(e.bot) + "</strong> " : "") + esc(e.text) + "</td></tr>";
+  const lastFew = recentEvents(["invasion", "rush", "guild", "server_first"]).slice(0, 15).map(e => '<tr><td class="meta">' + esc(ago(e.at)) +
+    '</td><td><span style="color:' + (KIND_COLORS[e.kind] || "var(--text-muted)") + '">' + esc(w.kind[e.kind] || e.kind) + "</span></td><td>" +
+    (e.bot ? "<strong>" + esc(e.bot) + "</strong> " : "") + esc(e.text) + "</td></tr>").join("");
+  const table = (head, rows, why) => rows ? '<div class="scroll"><table>' + (head ? "<thead><tr>" + head + "</tr></thead>" : "") + "<tbody>" + rows + "</tbody></table></div>"
+    : '<p class="empty">' + esc(why) + "</p>";
+  body.innerHTML = topicError(d) + vivantFigures([[w.invasionsNow, num(inv.length), ""], [w.rushesNow, num(rush.length), ""], [w.guilds, num(guilds.length), ""],
+    [w.guildOrders, num(gorders.filter(o => o.state === "open").length), w.openOrders.toLowerCase()],
+    [w.stuck24, count(rec.stuck), rec.events ? w.fromEvents : ""], [w.unstuck24, count(rec.unstuck), rec.events ? w.fromEvents : ""]]) +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.happening) + "</h2>" + (now || '<p class="empty">' + esc(w.nothingNow) + "</p>") + "</section>" +
+    '<section class="card"><h2>' + esc(w.firsts) + "</h2>" + table("", firsts.slice(0, 12).map(line).join(""), w.noFirst) + "</section></div>" +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.guilds) + "</h2>" + table("<th></th><th class=\"r\">" + esc(w.members) + '</th><th class="r">Bots</th><th class="r">' +
+      esc(w.onlineCol) + '</th><th class="r">' + esc(w.bank) + '</th><th class="r">' + esc(w.openOrders) + "</th>", guildRows, w.noGuild) + "</section>" +
+    '<section class="card"><h2>' + esc(w.guildOrders) + "</h2>" + table("", orderRows, w.noGuildOrder) + "</section></div>" +
+    '<section class="card"><h2>' + esc(w.highlights) + "</h2>" + table("", lastFew, w.noHighlight) + "</section>";
 }
 
 const PROFESSIONS = { 164: "Blacksmithing", 165: "Leatherworking", 171: "Alchemy", 182: "Herbalism", 185: "Cooking", 186: "Mining",
@@ -139,6 +209,16 @@ function vivantEconomy(body, w) {
     esc(w.forWhom) + " " + esc(o.buyer) + '</div></td><td class="r">' + (o.state === "refused" && !o.price ? "–" : money(o.price)) + '</td><td class="order-' + esc(o.state) + '">' + esc(w.orderState[o.state] || o.state) +
     '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
   const refused = orders.filter(o => o.state === "refused").length;
+  const smeltRows = (d.smelt_24h || []).map(r => "<tr><td>" + qualityName(r.name || "#" + r.item, r.quality) + '</td><td class="r">' + count(r.count) + "</td></tr>").join("");
+  const deRows = (d.disenchant_24h || []).map(r => "<tr><td>" + qualityName(r.name || "#" + r.item, r.quality) + (r.from ? '<div class="meta">' + esc(w.fromItems(num(r.from))) + "</div>" : "") +
+    '</td><td class="r">' + count(r.count) + "</td></tr>").join("");
+  const pairs = rows => '<div class="scroll"><table><tbody>' + rows.map(p => "<tr><td>" + esc(p[0]) + '</td><td class="r">' + p[1] + "</td></tr>").join("") + "</tbody></table></div>";
+  const c = d.clock, a = d.ahbot_24h;
+  const clockHtml = !c ? '<p class="empty">' + esc(w.soon) + "</p>" : '<p class="meta">' + esc(c.enabled ? w.clockOn : w.clockOff) + "</p>" +
+    pairs([[w.offlineAdded, c.offline_added_s == null ? "–" : duration(c.offline_added_s / 60) + " h"], [w.soldClock, count(c.sold_24h)],
+      [w.expired, count(c.expired_24h)], [w.relisted, count(c.relisted_24h)]]);
+  const ahHtml = !a ? '<p class="empty">' + esc(w.soon) + "</p>" :
+    pairs([[w.listed, count(a.listed)], [w.bought, count(a.bought)], [w.goldIn, money(a.gold_in)], [w.goldOut, money(a.gold_out)]]);
   const table = (head, rows, why) => rows ? '<div class="scroll"><table><thead><tr>' + head + "</tr></thead><tbody>" + rows + "</tbody></table></div>"
     : '<p class="empty">' + esc(why) + "</p>";
   const share = d.gold_bots !== null && d.gold_bots !== undefined && d.gold_circulating ? Math.round(d.gold_bots / d.gold_circulating * 100) + " %" : "";
@@ -154,7 +234,13 @@ function vivantEconomy(body, w) {
       esc(w.profit) + "</th>", craftRows, w.needs("Artisans")) + "</section></div>" +
     '<div class="grid two"><section class="card"><h2>' + esc(w.orders) + "</h2>" + table("<th>" + esc(w.item) + '</th><th class="r">' + esc(w.gold) +
       "</th><th></th><th></th>", orderRows, w.needs("CraftOrders")) + "</section>" +
-    '<section class="card"><h2>' + esc(w.auctionsWeek) + '</h2><div class="chart" id="vvAh"></div></section></div>';
+    '<section class="card"><h2>' + esc(w.auctionsWeek) + '</h2><div class="chart" id="vvAh"></div></section></div>' +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.smelt) + "</h2>" + (d.smelt_24h == null ? '<p class="empty">' + esc(w.soon) + "</p>" :
+      table("<th>" + esc(w.item) + '</th><th class="r">' + esc(w.qty) + "</th>", smeltRows, w.needs("Materials"))) + "</section>" +
+    '<section class="card"><h2>' + esc(w.disenchant) + "</h2>" + (d.disenchant_24h == null ? '<p class="empty">' + esc(w.soon) + "</p>" :
+      table("<th>" + esc(w.item) + '</th><th class="r">' + esc(w.qty) + "</th>", deRows, w.needs("Materials"))) + "</section></div>" +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.clock) + "</h2>" + clockHtml + "</section>" +
+    '<section class="card"><h2>' + esc(w.ahbot) + "</h2>" + ahHtml + "</section></div>";
   lineChart(document.getElementById("vvAh"), d.history || [], { value: p => p.auctions, label: w.auctionsWeek, unit: "" });
 }
 
@@ -213,14 +299,22 @@ function vivantHealth(body, w) {
   const builds = real.reduce((s, k) => s + ((VIVANT[k] || {}).buildUs || 0), 0);
   const stuck = (h.stuck || []).map(s => "<tr><td>" + esc(s.name) + '</td><td class="meta">' + esc(s.zone || "") + "</td><td>" + esc(s.why) +
     '</td><td class="r meta">' + esc(w.since) + " " + esc(ago(s.since)) + "</td></tr>").join("");
+  const journal = recentEvents(["stuck", "unstuck"], DAY);
+  const stuckJournal = journal.length ? '<p class="meta">' + esc(w.stuckEvents) + '</p><div class="scroll"><table><tbody>' + journal.slice(0, 20).map(e =>
+    '<tr><td class="meta">' + esc(ago(e.at)) + '</td><td><span style="color:' + KIND_COLORS[e.kind] + '">' + esc(w.kind[e.kind]) + "</span></td><td><strong>" + esc(e.bot) +
+    "</strong> " + esc(e.text) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="empty">' + esc(w.noStuck) + "</p>";
+  const stuckCount = h.stuck ? num(h.stuck.length) : journal.length ? num(recentEvents(["stuck"], DAY).length) : "–";
   body.innerHTML = topicError(d) + vivantFigures([[w.tick, tick.avg === null || tick.avg === undefined ? "–" : num(tick.avg) + " ms", w.tickFoot(tick.p95 == null ? null : num(tick.p95), tick.max == null ? null : num(tick.max))],
     [w.botsCpu, h.bots_us_per_tick ? (cpu.avg / 1000).toFixed(1) + " ms" : "–", h.bots_us_per_tick ? w.botsCpuFoot((cpu.p95 / 1000).toFixed(1)) : "PerfMon off"], [w.build, num(builds) + " µs", w.buildFoot],
-    [w.stuck, h.stuck ? num(h.stuck.length) : "–", h.stuck ? "" : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
+    [h.stuck ? w.stuck : w.stuck24, stuckCount, h.stuck ? "" : journal.length ? w.fromEvents : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.tickChart) + '</h2><div class="chart" id="vvTick"></div></section>' +
     '<section class="card"><h2>' + esc(w.botsChart) + '</h2><div class="chart" id="vvBots"></div></section></div>' +
     '<div class="grid two"><section class="card"><h2>' + esc(w.strategies) + '</h2><div id="vvStrat"></div></section>' +
-    '<section class="card"><h2>' + esc(w.stuckList) + "</h2>" + (!h.stuck ? '<p class="empty">' + esc(w.soon) + "</p>" : stuck ? '<div class="scroll"><table><tbody>' + stuck + "</tbody></table></div>"
-      : '<p class="empty">' + esc(w.noStuck) + "</p>") + '<p class="meta">' + esc(w.actionsSoon) + "</p></section></div>";
+    '<section class="card"><h2>' + esc(w.stuckList) + "</h2>" + (!h.stuck ? stuckJournal : stuck ? '<div class="scroll"><table><tbody>' + stuck + "</tbody></table></div>"
+      : '<p class="empty">' + esc(w.noStuck) + "</p>") + '<p class="meta">' + esc(w.actionsSoon) + "</p></section></div>" +
+    '<section class="card"><h2>' + esc(w.liveLog) + '</h2><p class="meta">' + esc(w.logHelp) + '</p><input id="vvLogQ" type="search" placeholder="' + esc(w.logFilter) +
+      '" value="' + esc(VIVANT_LOGQ) + '"><pre class="livelog" id="vvLog"></pre></section>';
+  showLiveLog(w);
   const points = h.history || [];
   lineChart(document.getElementById("vvTick"), points.filter(p => p.tick != null), { value: p => p.tick, label: w.tickChart, unit: " ms", waiting: w.curveWait });
   lineChart(document.getElementById("vvBots"), points.filter(p => p.online != null), { value: p => p.online, label: w.botsChart, unit: "", color: "var(--accent)", waiting: w.curveWait });
@@ -228,6 +322,22 @@ function vivantHealth(body, w) {
   rankedList(document.getElementById("vvStrat"), h.by_strategy_us.map(s => ({ name: s.name, us: s.us })),
     { value: r => r.us, unit: "µs", line2: () => "" });
 }
+
+function showLiveLog(w) {
+  const pre = document.getElementById("vvLog");
+  if (!pre) return;
+  const lines = VIVANT.log, q = VIVANT_LOGQ.toLowerCase();
+  if (!lines) { pre.textContent = w.noLog; return; }
+  const shown = q ? lines.filter(l => l.toLowerCase().includes(q)) : lines;
+  pre.innerHTML = shown.length ? shown.map(l => /error|fail|crash|assert/i.test(l) ? '<span class="log-bad">' + esc(l) + "</span>" : esc(l)).join("\n") : esc(w.noMatch);
+  pre.scrollTop = pre.scrollHeight;
+}
+
+document.addEventListener("input", event => {
+  if (event.target.id !== "vvLogQ") return;
+  VIVANT_LOGQ = event.target.value;
+  showLiveLog(VW());
+});
 
 document.addEventListener("click", event => {
   const tab = event.target.closest("[data-vivant]");

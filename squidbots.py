@@ -1622,9 +1622,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self._json(ctx.market.get())
         elif path == "/api/vivant":
             payload = ctx.vivant.get()
-            if "world" not in payload["demo"] and payload["world"].get("zones"):
-                names = _armory_names()[2]      # the module gives zone ids: AreaTable.dbc names them
-                for zone in payload["world"]["zones"]:
+            # The modules give zone ids: AreaTable.dbc names them.
+            places = [z for topic, key in (("world", "zones"), ("monde", "invasions"), ("monde", "rushes"))
+                      if topic not in payload["demo"] for z in payload[topic].get(key) or [] if isinstance(z, dict) and z.get("zone")]
+            if places:
+                names = _armory_names()[2]
+                for zone in places:
                     if not zone.get("name"):
                         zone["name"] = names.get(zone.get("zone"), "")
             self._json(payload)

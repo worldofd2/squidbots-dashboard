@@ -136,3 +136,12 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
   - Le coût des snapshots n'additionne que les fichiers réels.
 - Correctif au passage : quand MySQL ne répond pas, les noms de zones (DBC) se chargent avant les classes (base).
 - **groups.json** et **runs.jsonl** attendent le plan DC 3.0.
+
+## 9. Économie complète et vie du serveur (09/11, demande de l'user via le Pilote)
+- **Population** : toutes les activités de SquidBot (rest, grind, camp, wander_random, wander_npc, quest, flight, pvp, city, fish, gather, dungeon simulé, idle), triées par nombre. Répartition Alliance/Horde par zone (`zones[].faction`, SquidBot 0926f235). Bloc « Capitales ».
+- **Vie du monde** (nouvel onglet) : lit `monde.json`, proposé à CoA Monde (schema `squidbot.monde/1`, every 30 s, seulement si watch.json contient `monde`) :
+  `{"invasions":[{zone,map,kind,since,ends,bots}], "rushes":[{what,zone,since,bots}], "guilds":[{id,name,members,bots,online,bank_gold,orders_open}], "guild_orders":[{id,guild,item,count,state,at}], "server_firsts":[{what,by,at}], "recovery_24h":{stuck,unstuck}}`.
+  Sans ce fichier, les premiers du serveur, les faits marquants et les coincés sur 24 h viennent d'`events.jsonl`. Les noms de zones viennent d'AreaTable.dbc, les objets d'item_template.
+- **Économie** : fonte (`smelt_24h`), désenchantement (`disenchant_24h`, avec `from`), horloge des enchères (`clock` : enabled, offline_added_s, sold/expired/relisted_24h) et AHBot (`ahbot_24h` : listed, bought, gold_in, gold_out). Noms proposés à CoA Economie ; absents ou `null`, la carte dit « arrive avec CoA Bots 3.0 ».
+- **Santé** : `tick_ms.p95` (SquidBot 0926f235). `stuck` reste `null` chez SquidBot : la carte et le compteur prennent les events stuck/unstuck de Monde sur 24 h. **Logs en direct** : les 120 dernières lignes de CoaBots.log (64 Ko lus depuis la fin), filtrables, erreurs en rouge, relues toutes les 15 s. Page privée seulement.
+- Commandes aux bots : toujours en lecture seule. Elles viendront par la liste blanche RA du §4.

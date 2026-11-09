@@ -1,6 +1,6 @@
 """The living world of CoA Bots 3.0: what the bots do, read from the files SquidBot writes (docs: LIAISON-3.0.md).
 
-SquidBot writes world.json, economy.json and groups.json in <logs>/squidbot/, each wrapped as
+SquidBot writes world.json, economy.json, groups.json and monde.json (CoA Monde) in <logs>/squidbot/, each wrapped as
 {schema, at, every, build_us, data}, and only while someone looks: the dashboard rewrites watch.json there
 every half minute while this page is open. Until the module writes them, each missing topic is answered with
 made-up figures marked "demo", so the page can be built and shown before the module exists.
@@ -12,7 +12,7 @@ import random
 import threading
 import time
 
-TOPICS = ("world", "economy", "groups")
+TOPICS = ("world", "economy", "groups", "monde")
 MAJOR = 1           # schema version this page understands: squidbot.<topic>/1
 WATCH_EVERY = 30    # seconds between two writes of watch.json
 HISTORY_EVERY = 15 * 60
@@ -107,9 +107,11 @@ class Vivant:
                     out["stale"].append(topic)
                 out[topic] = data
             if "economy" not in out["demo"] and not out["economy"].get("error"):
-                self._name_items(out["economy"])
+                self._name_items(out["economy"], ("top_sales_24h", "crafts_24h", "orders", "smelt_24h", "disenchant_24h"))
                 out["economy"] = dict(out["economy"], categories=by_class(out["economy"].get("categories") or []))
                 out["economy"] = dict(out["economy"], history=self._remember(out["economy"]))
+            if "monde" not in out["demo"] and not out["monde"].get("error"):
+                self._name_items(out["monde"], ("guild_orders",))
             if "world" not in out["demo"] and not out["world"].get("error"):
                 world = out["world"]
                 health = dict(world.get("health") or {})
@@ -120,6 +122,7 @@ class Vivant:
                 events = _demo_events(now)
                 out["demo"].append("events")
             out["events"] = events
+            out["log"] = tail_text(self.ctx.coa_log, 120)
             last = self._last_runs()
             if last is not None:
                 out["groups"] = dict(out["groups"], last=last)
@@ -145,9 +148,9 @@ class Vivant:
             self.world_history = [p for p in self.world_history if at - p["ts"] < WORLD_KEEP] +                 [{"ts": int(at), "tick": tick, "online": world.get("online")}]
         return self.world_history
 
-    def _name_items(self, economy):
-        """The module gives item entries only: add their name and quality (one query for the entries not seen yet)."""
-        rows = [r for key in ("top_sales_24h", "crafts_24h", "orders") for r in economy.get(key) or [] if isinstance(r, dict) and r.get("item")]
+    def _name_items(self, doc, keys):
+        """The modules give item entries only: add their name and quality (one query for the entries not seen yet)."""
+        rows = [r for key in keys for r in doc.get(key) or [] if isinstance(r, dict) and r.get("item")]
         wanted = sorted({int(r["item"]) for r in rows} - set(self.items))
         if wanted and self.query:
             try:
@@ -201,6 +204,21 @@ def tail_jsonl(path, keep, span=256 * 1024):
     return rows
 
 
+def tail_text(path, keep, span=64 * 1024):
+    """The last `keep` lines of a text log (CoaBots.log), oldest first, reading only its last `span` bytes; None without it."""
+    try:
+        with open(path, "rb") as handle:
+            handle.seek(0, os.SEEK_END)
+            start = max(0, handle.tell() - span)
+            handle.seek(start)
+            lines = handle.read().decode("utf-8", errors="replace").splitlines()
+    except OSError:
+        return None
+    if start:
+        lines = lines[1:]
+    return [line for line in lines if line.strip()][-keep:]
+
+
 def by_class(categories):
     """The module counts per item class and subclass (Armor/Cloth, Armor/Plate…): one row per class here, prices
     weighted by auctions, a null price staying null when no subclass of the class has one."""
@@ -248,8 +266,12 @@ def _demo_world(now):
     weights = [r.uniform(.4, 1.6) * (3 if cap else 1) for _, _, cap in ZONES]
     total = sum(weights)
     zones = [{"zone": z, "name": n, "capital": cap, "bots": max(1, round(online * w / total))} for (z, n, cap), w in zip(ZONES, weights)]
+    for z in zones:
+        horde = z["zone"] in (1637, 1638, 1497, 14, 17) and .9 or z["zone"] in (1519, 1537, 1657, 12, 40) and .05 or r.uniform(.3, .7)
+        z["faction"] = {"alliance": z["bots"] - round(z["bots"] * horde), "horde": round(z["bots"] * horde)}
     zones.sort(key=lambda z: -z["bots"])
-    acts = {"quest": .42, "grind": .12, "city": .18, "travel": .08, "fish": .02, "pvp": .05, "dungeon": .08, "idle": .05}
+    acts = {"quest": .36, "grind": .1, "camp": .03, "city": .15, "wander_random": .04, "wander_npc": .03, "flight": .05, "rest": .03,
+            "fish": .02, "gather": .04, "pvp": .05, "dungeon": .07, "idle": .03}
     stuck = [{"name": r.choice(NAMES), "zone": r.choice(ZONES)[1], "since": int(now - r.randint(60, 900)),
               "why": r.choice(["no path", "falling", "loop on a quest giver", "inside a wall"])} for _ in range(r.randint(0, 3))]
     tick = r.randint(32, 48)
@@ -293,6 +315,13 @@ def _demo_economy(now):
             "orders": [{"id": 77, "buyer": "Squid", "bot": "Thorgal", "name": "Arcanite Reaper", "quality": 4, "price": 1250000, "state": "mailed", "at": int(now - 1800)},
                        {"id": 78, "buyer": "Squid", "bot": "Lyria", "name": "Robe of the Void", "quality": 4, "price": 640000, "state": "busy", "at": int(now - 5400)},
                        {"id": 74, "buyer": "Nimue", "bot": "Grimbald", "name": "Thorium Shield Spike", "quality": 2, "price": 85000, "state": "refused", "at": int(now - 86000)}],
+            "smelt_24h": [{"item": 12359, "name": "Thorium Bar", "quality": 1, "count": 140}, {"item": 6037, "name": "Truesilver Bar", "quality": 2, "count": 22},
+                          {"item": 3860, "name": "Mithril Bar", "quality": 1, "count": 61}],
+            "disenchant_24h": [{"item": 14344, "name": "Large Brilliant Shard", "quality": 3, "count": 18, "from": 18},
+                               {"item": 16204, "name": "Illusion Dust", "quality": 1, "count": 96, "from": 41},
+                               {"item": 16203, "name": "Greater Eternal Essence", "quality": 2, "count": 12, "from": 30}],
+            "clock": {"enabled": 1, "offline_added_s": 7200, "expired_24h": r.randint(300, 420), "sold_24h": r.randint(800, 1100), "relisted_24h": r.randint(150, 260)},
+            "ahbot_24h": {"listed": r.randint(2400, 2800), "bought": r.randint(500, 700), "gold_in": 4100000, "gold_out": 3650000},
             "history": [{"ts": int(now - i * 3600), "auctions": 3000 + 300 * math.sin((now - i * 3600) / 20000)} for i in range(48, -1, -1)],
             "at": int(now), "every": 60, "buildUs": 1250}
 
@@ -328,6 +357,21 @@ def _demo_groups(now):
             "at": int(now), "every": 15, "buildUs": 90}
 
 
+def _demo_monde(now):
+    """CoA Monde's state of the moment (proposed 09/11): invasions, rushes, guilds and their orders, server firsts."""
+    r = _rng(now, 5)
+    return {"invasions": [{"zone": 42, "name": "Duskwood", "kind": "Scourge", "since": int(now - 1500), "ends": int(now + 2100), "bots": r.randint(12, 30)}],
+            "rushes": [{"what": "Zul'Farrak", "zone": 1176, "name": "Zul'Farrak", "since": int(now - 900), "bots": 20}],
+            "guilds": [{"id": 1, "name": "Iron Tide", "members": 48, "bots": 46, "online": r.randint(18, 30), "bank_gold": 12500000, "orders_open": 2},
+                       {"id": 2, "name": "Moonwhisper", "members": 37, "bots": 37, "online": r.randint(10, 22), "bank_gold": 8400000, "orders_open": 1},
+                       {"id": 3, "name": "Blood of Ashenvale", "members": 29, "bots": 28, "online": r.randint(8, 16), "bank_gold": None, "orders_open": 0}],
+            "guild_orders": [{"id": 12, "guild": "Iron Tide", "item": 13444, "name": "Major Mana Potion", "quality": 1, "count": 20, "state": "open", "at": int(now - 3000)},
+                             {"id": 11, "guild": "Moonwhisper", "item": 14047, "name": "Runecloth", "quality": 1, "count": 60, "state": "done", "at": int(now - 9000)}],
+            "server_firsts": [{"what": "level 60", "by": "Kaelis", "at": int(now - 20000)}, {"what": "Onyxia", "by": "<Iron Tide>", "at": int(now - 50000)}],
+            "recovery_24h": {"stuck": r.randint(8, 20), "unstuck": r.randint(6, 18)},
+            "at": int(now), "every": 30, "buildUs": 60}
+
+
 def _demo_events(now):
     r = _rng(now, 4)
     lines = [("invasion", "", "The Scourge invades Darkshire: guards and bots rally at the town hall."),
@@ -349,4 +393,4 @@ def _demo_events(now):
     return out
 
 
-DEMO = {"world": _demo_world, "economy": _demo_economy, "groups": _demo_groups}
+DEMO = {"world": _demo_world, "economy": _demo_economy, "groups": _demo_groups, "monde": _demo_monde}
