@@ -179,3 +179,34 @@ Ajout seulement, même version de schéma. Les autres champs de `world.json` con
 ## 12. Montée en charge et coincés distincts (09/11)
 - **Montée en charge** (demande de l'user) : tant que les bots en ligne n'ont pas atteint 95 % du nombre visé, et pendant 5 min de plus, Santé affiche « Montée en charge » à la place du tick, et la courbe du tick ne garde pas ces points. Le nombre visé et la fin de la montée viennent de `health.ramp` = `{target, done_at, after_s}` (CoA SquidBot, coa-3.0-live : `target` = GetMaxAllowedBotCount avec CoaPlayersReplaceBots ; `tick_ms` vaut null jusqu'à `done_at + after_s`, puis avg et p95 sur les 3 000 derniers ticks et max depuis ce moment ; avec `target` 0 (pas de bots aléatoires), `done_at` est posé au premier passage, puis les mêmes 300 s ; commit 3cd8ac28). En attendant, le dashboard prend `AiPlayerbot.MinRandomBots` dans playerbots.conf et calcule lui-même la fin de la montée ; le max du cœur contient alors encore les pics du démarrage et s'affiche « max depuis le démarrage ».
 - **monde.json `recovery_24h`** (Monde, prochain exe) : `stuck` et `unstuck` comptent des bots distincts ; `stuck_events` et `unstuck_events` comptent les détections ; `since` = début de la fenêtre (max(démarrage, maintenant − 24 h)). Le libellé devient « Bots coincés depuis HH:MM » tant que la fenêtre fait moins de 24 h, les détections en pied de tuile.
+
+## 13. Groupes et donjons réels (proposition du 09/11)
+Chaque module écrit dans son propre fichier : deux modules qui écrivent le même fichier se marcheraient dessus. Le dashboard assemble les trois sources dans l'onglet Groupes et donjons.
+
+**CoA SquidBot → `world.json`, bloc `groups`** : tous les groupes réels en instance (joueurs, alts et bots mêlés), avec Dungeon Clear ou sans.
+```json
+"groups": {
+  "running": [{"instance": n, "map": n, "dungeon": "sfk", "dungeonName": "Shadowfang Keep", "kind": "dungeon|raid", "difficulty": 0,
+               "players": n, "alts": n, "bots": n, "leader": "…", "startedAt": epoch, "bossesKilled": n, "bossesTotal": n|null, "wipes": n, "dc": bool}],
+  "today": {"since": epoch, "runs": n, "cleared": n, "wipes": n, "bossKills": n},
+  "byDungeon": [{"dungeon": "sfk", "dungeonName": "…", "runs": n, "cleared": n, "wipes": n, "medianS": n, "bestS": n}],
+  "last": [{"instance": n, "dungeon": "…", "dungeonName": "…", "difficulty": 0, "startedAt": epoch, "endedAt": epoch, "result": "clear|wipe|left",
+            "bossesKilled": n, "bossesTotal": n, "wipes": n, "players": n, "alts": n, "bots": n, "dc": bool}]
+}
+```
+- Un run commence à la première entrée du groupe dans l'instance. Il finit quand la sortie dure plus de 5 min, ou quand l'instance est réinitialisée. Il est `clear` quand le dernier boss est tué.
+- Un wipe = tout le groupe mort dans l'instance. `bossesTotal` vient des données CoA (comme DC).
+- `today` court depuis 00:00, heure du serveur, ou depuis le démarrage s'il est plus récent. `last` garde les 8 derniers runs.
+
+**CoA Monde → `monde.json`, bloc `dungeon_sim`** : les donjons simulés. Les bots se déconnectent pendant le run, donc ni `world.json` ni `everyone` ne les voient.
+```json
+"dungeon_sim": {
+  "running": [{"dungeon": "…", "dungeonName": "…", "faction": "alliance|horde", "level": n, "bots": n, "startedAt": epoch, "endsAt": epoch, "bosses": n}],
+  "today": {"since": epoch, "runs": n, "bossKills": n, "items": n},
+  "last": [{"dungeon": "…", "dungeonName": "…", "bots": n, "durationS": n, "bossesKilled": n, "at": epoch}]
+}
+```
+
+**Dungeon Clear → `runs.jsonl`** (§3, inchangé) : une ligne par run `dc on` réel, avec `bossTimeline` et `comp`. Il ajoute `instance` pour que le dashboard rattache la ligne au run de SquidBot.
+
+**Dashboard** : tuiles (runs du jour, terminés, wipes, boss tués, groupes en cours, bots en donjon = `everyone.places.dungeon + raid` + bots des donjons simulés). En dessous : « En cours » (réels, avec DC marqué, puis simulés), « Par donjon » et « Derniers runs » (détail DC quand il existe). Plus aucune donnée factice dès qu'un des trois blocs existe.
