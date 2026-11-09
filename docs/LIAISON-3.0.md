@@ -159,3 +159,19 @@ Les commandes RA du module sont `.squidbot bot <nom> stop|resume|summon|unstuck`
   - `guild_orders[]` : les 20 dernières depuis le démarrage ; state shared | crafted | bought | none, `by` = bot qui l'a servie.
   - `server_firsts[]` : les 20 derniers {what, by, guild, at} ; `recovery_24h` {stuck, unstuck}.
   - Pas encore passé au banc côté Monde : testé ici avec des fichiers à ce format sur le royaume d'essai.
+
+## 11. Tout le monde en ligne : `world.json` → `everyone` (CoA SquidBot d2ce3948, 09/11)
+Ajout seulement, même version de schéma. Les autres champs de `world.json` continuent de ne compter que les bots aléatoires.
+```json
+"everyone": {
+  "total":    {"players": n, "alts": n, "bots": n},
+  "places":   {"battleground": M, "arena": M, "raid": M, "dungeon": M, "capital": M, "world": M},
+  "factions": {"alliance": M, "horde": M},
+  "zones":    [{"map": n, "zone": n, "capital": bool, "players": n, "alts": n, "bots": n}]
+}
+```
+- `M` = `{"players", "alts", "bots"}`. `players` = vrais joueurs ; `alts` = bots tenus par un joueur (alts, addbots) ; `bots` = bots aléatoires.
+- Chaque personnage est compté dans un seul lieu, le premier qui convient : arène > champ de bataille > raid > donjon > capitale > monde.
+- `zones` : les 40 zones les plus peuplées, triées par total.
+- Même passe et même écriture que le reste du fichier, rien par tick.
+- Côté dashboard (Population) : quand `everyone` est là, les tuiles (personnages en ligne, joueurs, capitale, donjon + raid, champ de bataille + arène), le tableau « Tout le monde en ligne » (lieux × joueurs/alts/bots, puis factions) et la liste des zones en viennent. Sans lui, la page reste sur les bots aléatoires ; les bots en champ de bataille sont alors comptés d'après la carte de leur zone.

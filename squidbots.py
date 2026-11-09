@@ -1631,6 +1631,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             # The modules give zone ids: AreaTable.dbc names them.
             places = [z for topic, key in (("world", "zones"), ("monde", "invasions"), ("monde", "rushes"))
                       if topic not in payload["demo"] for z in payload[topic].get(key) or [] if isinstance(z, dict) and z.get("zone")]
+            if "world" not in payload["demo"] and isinstance(payload["world"].get("everyone"), dict):
+                places += [z for z in payload["world"]["everyone"].get("zones") or [] if isinstance(z, dict) and z.get("zone")]
             if places:
                 names = _armory_names()[2]
                 for zone in places:

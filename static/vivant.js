@@ -10,7 +10,10 @@ const VIVANT_WORDS = {
     demo: t => "Made-up figures for " + t + ": the server does not write these files yet (CoA Bots 3.0).",
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", inBg: "In battlegrounds and arenas", pvpAll: n => n + " in PvP in all",
-    demoTab: "Made-up figures: nothing on this tab comes from the server yet.", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
+    demoTab: "Made-up figures: nothing on this tab comes from the server yet.",
+    everyone: "Everyone online", allChars: "Characters online", whoCols: ["Players", "Alts", "Bots", "All"], split: (p, a, b) => p + " players · " + a + " alts · " + b + " bots",
+    place: { arena: "Arena", battleground: "Battleground", raid: "Raid", dungeon: "Dungeon", capital: "Capital", world: "Out in the world" },
+    raidPart: n => "of which " + n + " in a raid", everyoneHelp: "Players, their alts and party bots, and the random bots; each one counted once, in the first place that fits: arena, battleground, raid, dungeon, capital, world.", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy.",
     zones: "Where they are", capital: "capital", activities: "What they do", souls: "Souls", surnames: "Surnames", soonL1: "comes with CoA Bots 3.0 (L1)", soulsOff: "Souls are off on this realm (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["None", "“Bot”", "From the list"], surnameHelp: ["Bots show their first name only.", "Every bot is named “First Bot” (as in 2.x).", n => "A family name per bot, drawn once from a list of " + n + "."],
     mostWorn: "Most worn",
@@ -49,7 +52,10 @@ const VIVANT_WORDS = {
     demo: t => "Données factices pour " + t + " : le serveur n'écrit pas encore ces fichiers (CoA Bots 3.0).",
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", inBg: "En champ de bataille ou arène", pvpAll: n => n + " en JcJ au total",
-    demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
+    demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.",
+    everyone: "Tout le monde en ligne", allChars: "Personnages en ligne", whoCols: ["Joueurs", "Alts", "Bots", "Total"], split: (p, a, b) => p + " joueurs · " + a + " alts · " + b + " bots",
+    place: { arena: "Arène", battleground: "Champ de bataille", raid: "Raid", dungeon: "Donjon", capital: "Capitale", world: "Dans le monde" },
+    raidPart: n => "dont " + n + " en raid", everyoneHelp: "Les joueurs, leurs alts et bots de groupe, et les bots aléatoires ; chacun compté une fois, au premier lieu qui convient : arène, champ de bataille, raid, donjon, capitale, monde.", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie.",
     zones: "Où ils sont", capital: "capitale", activities: "Ce qu'ils font", souls: "Âmes", surnames: "Surnoms", soonL1: "arrive avec CoA Bots 3.0 (L1)", soulsOff: "Les âmes sont coupées sur ce royaume (AiPlayerbot.CoaSoul.Enable = 0).",
     surnameMode: ["Aucun", "« Bot »", "Liste"], surnameHelp: ["Les bots ne montrent que leur prénom.", "Chaque bot s'appelle « Prénom Bot » (comme en 2.x).", n => "Un nom de famille par bot, tiré une fois pour toutes d'une liste de " + n + "."],
     mostWorn: "Les plus portés",
@@ -124,17 +130,38 @@ function vivantPopulation(body, w) {
   const d = VIVANT.world || {};
   const zones = d.zones || [], acts = d.activities || {}, h = d.health || {};
   const capitals = zones.filter(z => z.capital).reduce((s, z) => s + z.bots, 0);
-  body.innerHTML = topicError(d) + vivantFigures([[w.online, num(d.online), ""], [w.players, num(d.players), ""],
-    [w.inCapitals, num(capitals), Math.round(capitals / Math.max(1, d.online) * 100) + " %"], [w.busy, num(acts.dungeon), ""],
+  // world.json "everyone" (SquidBot d2ce3948): players, alts and random bots together; the other fields count random bots only.
+  const ev = d.everyone && d.everyone.total ? d.everyone : null;
+  const all = m => (m ? (m.players || 0) + (m.alts || 0) + (m.bots || 0) : 0);
+  const at = k => all(ev && ev.places && ev.places[k]);
+  const total = ev ? all(ev.total) : 0;
+  const head = ev ? [[w.allChars, num(total), w.split(num(ev.total.players || 0), num(ev.total.alts || 0), num(ev.total.bots || 0))],
+      [w.players, num(ev.total.players || 0), num(ev.total.alts || 0) + " alts"],
+      [w.inCapitals, num(at("capital")), Math.round(at("capital") / Math.max(1, total) * 100) + " %"],
+      [w.busy, num(at("dungeon") + at("raid")), at("raid") ? w.raidPart(num(at("raid"))) : ""]]
+    : [[w.online, num(d.online), ""], [w.players, num(d.players), ""],
+      [w.inCapitals, num(capitals), Math.round(capitals / Math.max(1, d.online) * 100) + " %"], [w.busy, num(acts.dungeon), ""]];
+  const bgCount = ev ? at("battleground") + at("arena") : zones.filter(z => BG_MAPS.has(z.map)).reduce((s, z) => s + z.bots, 0);
+  const whoRow = (label, m) => "<tr><td>" + esc(label) + '</td><td class="r">' + num((m || {}).players || 0) + '</td><td class="r">' + num((m || {}).alts || 0) +
+    '</td><td class="r">' + num((m || {}).bots || 0) + '</td><td class="r"><strong>' + num(all(m)) + "</strong></td></tr>";
+  const everyoneCard = !ev ? "" : '<section class="card"><h2>' + esc(w.everyone) + '</h2><p class="meta">' + esc(w.everyoneHelp) +
+    '</p><div class="scroll"><table><thead><tr><th></th>' + w.whoCols.map(c => '<th class="r">' + esc(c) + "</th>").join("") + "</tr></thead><tbody>" +
+    ["arena", "battleground", "raid", "dungeon", "capital", "world"].filter(k => at(k)).map(k => whoRow(w.place[k], ev.places[k])).join("") +
+    (ev.factions ? whoRow(w.alliance, ev.factions.alliance) + whoRow(w.horde, ev.factions.horde) : "") + whoRow(w.whoCols[3], ev.total) + "</tbody></table></div></section>";
+  body.innerHTML = topicError(d) + vivantFigures(head.concat([
     h.stuck ? [w.stuck, num(h.stuck.length), ""] : [w.stuck24, (stuckDay() || {}).count || "–", stuckDay() ? (stuckDay().journal ? w.fromEvents : "") : w.soon],
-    [w.inBg, num(zones.filter(z => BG_MAPS.has(z.map)).reduce((s, z) => s + z.bots, 0)), acts.pvp == null ? "" : w.pvpAll(num(acts.pvp))]]) +
+    [w.inBg, num(bgCount), acts.pvp == null || ev ? "" : w.pvpAll(num(acts.pvp))]])) + everyoneCard +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
     '<h2 class="later">' + esc(w.capitals) + '</h2><div class="splits" id="vvCaps"></div>' +
     '<h2 class="later">' + esc(w.souls) + '</h2><div class="splits" id="vvSouls"></div>' +
     '<h2 class="later">' + esc(w.surnames) + '</h2><div id="vvSurname"></div></section></div>';
   const sides = z => { const f = z.faction || {}; return f.alliance == null && f.horde == null ? "" : w.alliance + " " + num(f.alliance || 0) + " · " + w.horde + " " + num(f.horde || 0); };
-  rankedList(document.getElementById("vvZones"), zones.map(z => ({ name: z.name || "#" + z.zone, bots: z.bots, capital: z.capital, sides: sides(z) })),
+  if (ev && ev.zones && ev.zones.length)
+    rankedList(document.getElementById("vvZones"), ev.zones.map(z => ({ name: z.name || "#" + z.zone, n: all(z), capital: z.capital,
+      who: w.split(num(z.players || 0), num(z.alts || 0), num(z.bots || 0)) })).sort((a, b) => b.n - a.n),
+      { value: r => r.n, unit: "", line2: r => [r.capital ? w.capital : "", r.who].filter(Boolean).join(" · ") });
+  else rankedList(document.getElementById("vvZones"), zones.map(z => ({ name: z.name || "#" + z.zone, bots: z.bots, capital: z.capital, sides: sides(z) })),
     { value: r => r.bots, unit: "bots", line2: r => [r.capital ? w.capital : "", r.sides].filter(Boolean).join(" · ") });
   const caps = zones.filter(z => z.capital), capHost = document.getElementById("vvCaps");
   if (!caps.length) capHost.innerHTML = '<p class="empty">' + esc(w.noCapital) + "</p>";
