@@ -169,9 +169,11 @@ class Vivant:
         at, online = world.get("at"), world.get("online") or 0
         given = (world.get("health") or {}).get("ramp")
         if isinstance(given, dict) and "done_at" in given:
-            done = given.get("done_at")
-            return {"target": given.get("target"), "online": online, "doneAt": done, "until": done + RAMP_AFTER if done else None,
-                    "ramping": not done or (at or 0) < done + RAMP_AFTER, "source": "module"}
+            # CoA SquidBot: tick_ms is null until done_at + after_s, then measured from there (its max included).
+            # A realm without random bots (target 0) never ramps: its tick stays null, shown "–".
+            done, after = given.get("done_at"), int(given.get("after_s") or RAMP_AFTER)
+            return {"target": given.get("target"), "online": online, "doneAt": done, "until": done + after if done else None,
+                    "ramping": bool(given.get("target")) and (not done or (at or 0) < done + after), "source": "module"}
         target = self._asked()
         start = world.get("serverStart")
         if start != self.ramp["start"]:
