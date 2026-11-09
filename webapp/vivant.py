@@ -19,6 +19,8 @@ HISTORY_EVERY = 15 * 60
 HISTORY_KEEP = 48 * 3600
 WORLD_EVERY = 5 * 60
 WORLD_KEEP = 6 * 3600
+RAMP_SHARE = .95    # the bots are "all in" from 95 % of the number asked for...
+RAMP_AFTER = 300    # ...and the tick is counted from 5 minutes later (the user, 09/11: ignore the start-up)
 
 
 class Vivant:
@@ -32,6 +34,8 @@ class Vivant:
         except (OSError, ValueError):
             self.history = []
         self.world_history = []     # tick and bots online, a point per 5 min over 6 h (memory only)
+        self.ramp = {"start": None, "done": None}   # this server start, and when its bots were all in
+        self.target = (0, None)                     # (read at, bots asked for in playerbots.conf)
         # The module's AiPlayerbot.CoaDataDir, by default <LogsDir>/squidbot: the folder of the realm's CoaBots.log.
         self.dir = (ctx.realm.key == "coa" and squidbot_dir) or os.path.join(os.path.dirname(ctx.coa_log), "squidbot")
         self.lock = threading.Lock()
@@ -116,6 +120,7 @@ class Vivant:
                 world = out["world"]
                 self._name_items(world, ("guild_orders",))
                 health = dict(world.get("health") or {})
+                world["ramp"] = self._ramp(world)
                 health.setdefault("history", self._remember_world(world))
                 out["world"] = dict(world, health=health)
             events = self._events()
@@ -142,9 +147,50 @@ class Vivant:
                 pass
         return self.history
 
+    def _asked(self):
+        """The random bots asked for: AiPlayerbot.MinRandomBots of the realm's playerbots.conf (read once a minute)."""
+        now = time.time()
+        if now - self.target[0] > 60:
+            value = None
+            folder = getattr(self.ctx, "config_dir", None)
+            if folder:
+                from webapp import realms
+                raw = realms.conf_value(os.path.join(folder, "playerbots.conf"), "AiPlayerbot.MinRandomBots")
+                try:
+                    value = int(raw) if raw else None
+                except ValueError:
+                    value = None
+            self.target = (now, value)
+        return self.target[1]
+
+    def _ramp(self, world):
+        """Start-up: until the bots online reach 95 % of the number asked for, and 5 minutes more, the tick says nothing
+        of the server at cruise. The module's own "ramp" wins ({target, done_at}); else playerbots.conf gives the number."""
+        at, online = world.get("at"), world.get("online") or 0
+        given = (world.get("health") or {}).get("ramp")
+        if isinstance(given, dict) and "done_at" in given:
+            done = given.get("done_at")
+            return {"target": given.get("target"), "online": online, "doneAt": done, "until": done + RAMP_AFTER if done else None,
+                    "ramping": not done or (at or 0) < done + RAMP_AFTER, "source": "module"}
+        target = self._asked()
+        start = world.get("serverStart")
+        if start != self.ramp["start"]:
+            self.ramp = {"start": start, "done": None}
+            self.world_history = []
+        if not target or not at:
+            return {"target": target, "online": online, "doneAt": None, "until": None, "ramping": False, "source": None}
+        if self.ramp["done"] is None and online >= RAMP_SHARE * target:
+            # Seen full for the first time: just now, unless this dashboard came long after the start (then it is over).
+            self.ramp["done"] = at if not start or at - start < 2 * RAMP_AFTER else at - RAMP_AFTER
+        done = self.ramp["done"]
+        return {"target": target, "online": online, "doneAt": done, "until": done + RAMP_AFTER if done else None,
+                "ramping": done is None or at < done + RAMP_AFTER, "source": "conf"}
+
     def _remember_world(self, world):
         at = world.get("at")
         tick = ((world.get("health") or {}).get("tick_ms") or {}).get("avg")
+        if (world.get("ramp") or {}).get("ramping"):
+            tick = None     # the curve keeps the bots online, not the start-up's tick
         if at and (not self.world_history or at - self.world_history[-1]["ts"] >= WORLD_EVERY):
             self.world_history = [p for p in self.world_history if at - p["ts"] < WORLD_KEEP] +                 [{"ts": int(at), "tick": tick, "online": world.get("online")}]
         return self.world_history

@@ -29,6 +29,8 @@ const VIVANT_WORDS = {
     clockOn: "Auctions run on game time: the hours the server is off are added to every auction.", clockOff: "Auctions run on real time (clock off).",
     offlineAdded: "Added at the last start", expired: "Expired, 24 h", soldClock: "Sold, 24 h", relisted: "Relisted, 24 h",
     ahbot: "Auction house bot, 24 h", listed: "Listed", bought: "Bought", goldIn: "Gold in", goldOut: "Gold out",
+    ramping: "Ramping up", rampFoot: (o, t) => o + " / " + t + " bots in, tick counted 5 min after 95 %", rampLeft: m => "tick counted in " + m + " min",
+    maxSinceStart: "max since the server start", stuckSince: t => "Stuck bots since " + t, unstuckSince: t => "Freed since " + t, detections: n => n + " detections",
     stuckEvents: "From the journal (stuck and freed)", liveLog: "Live log", logHelp: "The newest lines of CoaBots.log, read again every 15 s.", logFilter: "Filter",
     noLog: "No CoaBots.log for this realm.", noMatch: "No line matches.",
     soul: { lazy: "Lazy", quester: "Quester", wanderer: "Wanderer", trader: "Trader", pvp: "PvP" },
@@ -71,6 +73,8 @@ const VIVANT_WORDS = {
     clockOn: "Les enchères tournent sur le temps de jeu : les heures où le serveur est arrêté sont ajoutées à chaque enchère.", clockOff: "Les enchères tournent sur le temps réel (horloge coupée).",
     offlineAdded: "Ajouté au dernier démarrage", expired: "Expirées, 24 h", soldClock: "Vendues, 24 h", relisted: "Remises en vente, 24 h",
     ahbot: "Bot de l’hôtel des ventes, 24 h", listed: "Mises en vente", bought: "Achats", goldIn: "Or reçu", goldOut: "Or dépensé",
+    ramping: "Montée en charge", rampFoot: (o, t) => o + " / " + t + " bots connectés, tick compté 5 min après 95 %", rampLeft: m => "tick compté dans " + m + " min",
+    maxSinceStart: "max depuis le démarrage", stuckSince: t => "Bots coincés depuis " + t, unstuckSince: t => "Décoincés depuis " + t, detections: n => n + " détections",
     stuckEvents: "D’après le journal (coincés et décoincés)", liveLog: "Logs en direct", logHelp: "Les dernières lignes de CoaBots.log, relues toutes les 15 s.", logFilter: "Filtrer",
     noLog: "Pas de CoaBots.log pour ce royaume.", noMatch: "Aucune ligne ne correspond.",
     soul: { lazy: "Paresseux", quester: "Quêteur", wanderer: "Flâneur", trader: "Commerçant", pvp: "JcJ" },
@@ -149,7 +153,7 @@ function vivantPopulation(body, w) {
     ["arena", "battleground", "raid", "dungeon", "capital", "world"].filter(k => at(k)).map(k => whoRow(w.place[k], ev.places[k])).join("") +
     (ev.factions ? whoRow(w.alliance, ev.factions.alliance) + whoRow(w.horde, ev.factions.horde) : "") + whoRow(w.whoCols[3], ev.total) + "</tbody></table></div></section>";
   body.innerHTML = topicError(d) + vivantFigures(head.concat([
-    h.stuck ? [w.stuck, num(h.stuck.length), ""] : [w.stuck24, (stuckDay() || {}).count || "–", stuckDay() ? (stuckDay().journal ? w.fromEvents : "") : w.soon],
+    h.stuck ? [w.stuck, num(h.stuck.length), ""] : [stuckLabel(w, (stuckDay() || {}).since), (stuckDay() || {}).count || "–", stuckDay() ? (stuckDay().journal ? w.fromEvents : "") : w.soon],
     [w.inBg, num(bgCount), acts.pvp == null || ev ? "" : w.pvpAll(num(acts.pvp))]])) + everyoneCard +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
@@ -189,9 +193,13 @@ const recentEvents = (kinds, span) => (VIVANT.events || []).filter(e => kinds.in
 // Stuck bots over 24 h: CoA World's own count (monde.json) when it writes one; the 200 journal lines cover only minutes on a big realm.
 function stuckDay() {
   const rec = !(VIVANT.demo || []).includes("monde") && VIVANT.monde && VIVANT.monde.recovery_24h;
-  if (rec) return { count: num(rec.stuck), journal: false };
+  if (rec) return { count: num(rec.stuck), journal: false, since: rec.since, events: rec.stuck_events };
   return VIVANT.events ? { count: num(recentEvents(["stuck"], DAY).length), journal: true } : null;
 }
+
+// "Stuck, 24 h", or "since 16:32" while the server has run less than a day (monde.json recovery_24h.since).
+const stuckLabel = (w, since, other) => since && since > Date.now() / 1000 - DAY + 60 ?
+  (other ? w.unstuckSince : w.stuckSince)(new Date(since * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : (other ? w.unstuck24 : w.stuck24);
 
 function vivantMonde(body, w) {
   const d = VIVANT.monde || {};
@@ -224,7 +232,8 @@ function vivantMonde(body, w) {
     : '<p class="empty">' + esc(why) + "</p>";
   body.innerHTML = topicError(d) + vivantFigures([[w.invasionsNow, num(inv.length), ""], [w.rushesNow, num(rush.length), ""], [w.guilds, num(guilds.length), ""],
     [w.guildOrders, num(gorders.length), w.sinceStart],
-    [w.stuck24, count(rec.stuck), rec.events ? w.fromEvents : ""], [w.unstuck24, count(rec.unstuck), rec.events ? w.fromEvents : ""]]) +
+    [stuckLabel(w, rec.since), count(rec.stuck), rec.events ? w.fromEvents : rec.stuck_events != null ? w.detections(num(rec.stuck_events)) : ""],
+    [stuckLabel(w, rec.since, true), count(rec.unstuck), rec.events ? w.fromEvents : rec.unstuck_events != null ? w.detections(num(rec.unstuck_events)) : ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.happening) + "</h2>" + (now || '<p class="empty">' + esc(w.nothingNow) + "</p>") + "</section>" +
     '<section class="card"><h2>' + esc(w.firsts) + "</h2>" + table("", firsts.slice(0, 12).map(line).join(""), w.noFirst) + "</section></div>" +
     '<div class="grid two"><section class="card"><h2>' + esc(w.guilds) + "</h2>" + table("<th></th><th class=\"r\">" + esc(w.members) + '</th><th class="r">' + esc(w.botsOnline) + '</th><th class="r">' +
@@ -354,9 +363,16 @@ function vivantHealth(body, w) {
     "</strong> " + esc(e.text) + "</td></tr>").join("") + "</tbody></table></div>" : '<p class="empty">' + esc(w.noStuck) + "</p>";
   const day = stuckDay();
   const stuckCount = h.stuck ? num(h.stuck.length) : day ? day.count : "–";
-  body.innerHTML = topicError(d) + vivantFigures([[w.tick, tick.avg === null || tick.avg === undefined ? "–" : num(tick.avg) + " ms", w.tickFoot(tick.p95 == null ? null : num(tick.p95), tick.max == null ? null : num(tick.max))],
+  const ramp = d.ramp || {};
+  const left = ramp.until ? Math.max(1, Math.ceil((ramp.until - Date.now() / 1000) / 60)) : null;
+  // After the ramp the module's max still holds the start-up's spikes unless it measures from the ramp's end itself.
+  const maxText = tick.max == null ? null : ramp.source === "conf" ? null : num(tick.max);
+  const tickTile = ramp.ramping ? [w.tick, w.ramping, ramp.doneAt ? w.rampLeft(left) : w.rampFoot(num(ramp.online || 0), num(ramp.target || 0))]
+    : [w.tick, tick.avg === null || tick.avg === undefined ? "–" : num(tick.avg) + " ms", maxText !== null || tick.max == null ? w.tickFoot(tick.p95 == null ? null : num(tick.p95), maxText)
+      : (tick.p95 == null ? "" : "p95 " + num(tick.p95) + " ms · ") + w.maxSinceStart + " " + num(tick.max) + " ms"];
+  body.innerHTML = topicError(d) + vivantFigures([tickTile,
     [w.botsCpu, h.bots_us_per_tick ? (cpu.avg / 1000).toFixed(1) + " ms" : "–", h.bots_us_per_tick ? w.botsCpuFoot((cpu.p95 / 1000).toFixed(1)) : "PerfMon off"], [w.build, num(builds) + " µs", w.buildFoot],
-    [h.stuck ? w.stuck : w.stuck24, stuckCount, h.stuck ? "" : day ? (day.journal ? w.fromEvents : "") : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
+    [h.stuck ? w.stuck : stuckLabel(w, (day || {}).since), stuckCount, h.stuck ? "" : day ? (day.journal ? w.fromEvents : "") : w.soon], [w.players, num(d.players), ""], [w.online, num(d.online), ""]]) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.tickChart) + '</h2><div class="chart" id="vvTick"></div></section>' +
     '<section class="card"><h2>' + esc(w.botsChart) + '</h2><div class="chart" id="vvBots"></div></section></div>' +
     '<div class="grid two"><section class="card"><h2>' + esc(w.strategies) + '</h2><div id="vvStrat"></div></section>' +
