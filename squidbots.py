@@ -815,6 +815,9 @@ class Stats:
             started, recorded = int(starts[-1][0]), int(starts[-1][1])
             uptime_seconds += max(0, int(time.time()) - started - recorded)
         uptime = {"hours": round(uptime_seconds / 3600.0, 1)}
+        # The tile shows this run of the worldserver; the hours added up since uptimeSince go underneath.
+        if starts and server["running"]:
+            uptime["runHours"] = round(max(0, int(time.time()) - int(starts[-1][0])) / 3600.0, 1)
 
         # Levels gained since the worldserver started, added up one level-up at a time: the sum of the
         # bots' levels also moves when level brackets send bots down, or far up, which is not play.
@@ -832,6 +835,9 @@ class Stats:
             last[b["name"]] = b["level"]
         json.dump(self.level_ups, open(self.levels_file, "w", encoding="utf-8"))
         session["levels"] = self.level_ups["gained"]
+        # Most bots already sit at the level cap: say how many, or "7 levels gained" reads as little.
+        top = max((b["level"] for b in bots), default=0)
+        session["atCap"], session["cap"] = sum(1 for b in bots if b.get("online") and top and b["level"] >= top), top
         session["levelHours"] = round((time.time() - server_start) / 3600.0, 3) if server_start else 0
 
         # Points for the curves, kept on disk so they survive a restart of the dashboard.
