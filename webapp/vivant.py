@@ -12,7 +12,7 @@ import random
 import threading
 import time
 
-TOPICS = ("world", "economy", "groups", "monde")
+TOPICS = ("world", "economy", "monde")
 MAJOR = 1           # schema version this page understands: squidbot.<topic>/1
 WATCH_EVERY = 30    # seconds between two writes of watch.json
 HISTORY_EVERY = 15 * 60
@@ -150,10 +150,24 @@ class Vivant:
                 out["missing"].append("events")
             out["events"] = events
             out["log"] = tail_text(self.ctx.coa_log, 120)
-            last = self._last_runs()
-            if last is not None:
-                out["groups"] = dict(out["groups"], last=last)
+            out["groups"] = self._groups(out, now)
             return out
+
+    def _groups(self, out, now):
+        """Groups and dungeons, from three writers (LIAISON-3.0 §13): CoA SquidBot's world.json "groups" (real instance runs,
+        null before the first), CoA World's monde.json "dungeon_sim" and "bg_sim" (null when off), Dungeon Clear's runs.jsonl."""
+        world_on = "world" not in out["demo"] + out["missing"] and not out["world"].get("error")
+        monde_on = "monde" not in out["demo"] + out["missing"] and not out["monde"].get("error")
+        dc = self._last_runs()
+        if not world_on and not monde_on and dc is None:
+            if self.demo:
+                out["demo"].append("groups")
+                return _demo_groups(now)
+            out["missing"].append("groups")
+            return {}
+        return {"real": out["world"].get("groups") if world_on else None, "worldOn": world_on,
+                "sim": out["monde"].get("dungeon_sim") if monde_on else None,
+                "bg": out["monde"].get("bg_sim") if monde_on else None, "mondeOn": monde_on, "dc": dc or []}
 
     def _remember(self, economy):
         at, auctions = economy.get("at"), economy.get("auctions")
@@ -405,34 +419,47 @@ def _demo_economy(now):
 
 
 def _demo_groups(now):
-    """Field names follow Dungeon Clear's run records (bin/dc_testruns.jsonl): camelCase, times in ms."""
+    """Made-up groups in the shape the page reads: CoA SquidBot's world.json "groups" (real instance runs), CoA World's
+    monde.json "dungeon_sim" and "bg_sim" (bots logged out while simulated), Dungeon Clear's runs.jsonl lines."""
     r = _rng(now, 3)
-    ms = int(now * 1000)
+    since = int(now // 86400 * 86400)
     running = []
-    for key, map_id, name, bosses in r.sample(DUNGEONS, 3):
-        running.append({"runId": r.randint(9000, 9999), "dungeon": key, "dungeonName": name, "mapId": map_id, "difficulty": r.choice([0, 0, 1]),
-                        "bots": 5, "players": r.choice([0, 0, 1]), "startedAtMs": ms - r.randint(300, 2400) * 1000,
-                        "bossesKilled": r.randint(0, bosses - 1), "bossesTotal": bosses, "wipes": r.choice([0, 0, 1, 2])})
-    by = [{"dungeon": key, "dungeonName": n, "runs": r.randint(2, 11), "medianS": b * 240 + r.randint(-120, 300), "bestS": b * 200, "wipes": r.randint(0, 4)}
-          for key, _, n, b in DUNGEONS]
+    for key, map_id, name, bosses in r.sample(DUNGEONS, 2):
+        running.append({"instance": r.randint(100, 999), "map": map_id, "dungeon": None, "dungeonName": name, "kind": "dungeon",
+                        "difficulty": r.choice([0, 0, 1]), "players": r.choice([0, 1]), "alts": r.choice([0, 4]), "bots": r.randint(1, 5),
+                        "leader": r.choice(NAMES), "startedAt": int(now - r.randint(300, 2400)), "bossesKilled": r.randint(0, bosses - 1),
+                        "bossesTotal": bosses, "wipes": r.choice([0, 0, 1]), "dc": None})
+    by = [{"map": m, "dungeon": None, "dungeonName": n, "runs": r.randint(1, 6), "cleared": 0, "wipes": r.randint(0, 3),
+           "medianS": b * 240 + r.randint(-120, 300), "bestS": b * 200} for _, m, n, b in DUNGEONS[:5]]
     for row in by:
         row["cleared"] = max(0, row["runs"] - r.randint(0, 2))
     last = []
-    for i in range(8):
-        key, map_id, name, bosses = r.choice(DUNGEONS)
-        end = ms - (i * 700 + r.randint(0, 600)) * 1000
-        took = r.randint(900, 2600)
-        result = r.choice(["clear", "clear", "clear", "wipe", "aborted"])
-        killed = bosses if result == "clear" else r.randint(0, bosses - 1)
-        last.append({"runId": 9000 - i, "dungeon": key, "dungeonName": name, "difficulty": r.choice([0, 0, 1]), "startedAtMs": end - took * 1000,
-                     "endedAtMs": end, "durationS": took, "result": result, "bossesKilled": killed, "bossesTotal": bosses, "wipes": r.randint(0, 2),
-                     "comp": [{"name": n, "class": c, "role": role} for n, c, role in
-                              zip(r.sample(NAMES, 5), ("Warrior", "Priest", "Mage", "Rogue", "Hunter"), ("tank", "heal", "dps", "dps", "dps"))],
-                     "players": r.choice([[], [], ["Squid"]])})
-    return {"running": running, "byDungeon": by, "last": last,
-            "today": {"runs": sum(b["runs"] for b in by), "cleared": sum(b["cleared"] for b in by),
-                      "wipes": sum(b["wipes"] for b in by), "bossKills": sum(b["cleared"] for b in by) * 6},
-            "at": int(now), "every": 15, "buildUs": 90}
+    for i in range(6):
+        _, map_id, name, bosses = r.choice(DUNGEONS)
+        end = int(now - i * 900 - r.randint(0, 600))
+        result = r.choice(["clear", "clear", "wipe", "left"])
+        last.append({"instance": 900 - i, "map": map_id, "dungeon": None, "dungeonName": name, "difficulty": 0, "startedAt": end - r.randint(900, 2600),
+                     "endedAt": end, "result": result, "bossesKilled": bosses if result == "clear" else r.randint(0, bosses - 1), "bossesTotal": bosses,
+                     "wipes": r.randint(0, 2), "players": r.choice([0, 1]), "alts": r.choice([0, 4]), "bots": r.randint(1, 5), "dc": None})
+    real = {"running": running, "byDungeon": by, "last": last,
+            "today": {"since": since, "runs": sum(b["runs"] for b in by), "cleared": sum(b["cleared"] for b in by),
+                      "wipes": sum(b["wipes"] for b in by), "bossKills": sum(b["cleared"] for b in by) * 5}}
+    sim = {"running": [{"dungeon": 209, "dungeonName": "Zul'Farrak", "faction": "horde", "level": 46, "bots": 5, "phase": "inside",
+                        "startedAt": int(now - 600), "endsAt": int(now + 1200), "bosses": 6},
+                       {"dungeon": 36, "dungeonName": "The Deadmines", "faction": "alliance", "level": 19, "bots": 5, "phase": "gathering",
+                        "startedAt": int(now - 120), "endsAt": None, "bosses": 0}],
+           "today": {"since": since, "runs": r.randint(8, 20), "bossKills": r.randint(40, 90), "items": r.randint(30, 80)},
+           "last": [{"dungeon": 47, "dungeonName": "Razorfen Kraul", "bots": 5, "durationS": 1500, "bossesKilled": 5, "at": int(now - 1800)}]}
+    bg = {"running": [{"bg": 489, "bgName": "Warsong Gulch", "levelMin": 50, "levelMax": 59, "alliance": 10, "horde": 10, "phase": "playing",
+                       "startedAt": int(now - 500), "endsAt": int(now + 700)}],
+          "today": {"since": since, "matches": r.randint(5, 15), "allianceWins": r.randint(2, 7), "hordeWins": r.randint(2, 7),
+                    "honor": r.randint(20000, 60000), "purchases": r.randint(1, 9)},
+          "last": [{"bg": 529, "bgName": "Arathi Basin", "levelMin": 50, "levelMax": 59, "bots": 30, "winner": "alliance", "durationS": 1320,
+                    "honor": 9400, "at": int(now - 2600)}]}
+    dc = [{"runId": 9001, "instance": 901, "dungeon": "sfk", "dungeonName": "Shadowfang Keep", "difficulty": 0, "startedAtMs": int((now - 4000) * 1000),
+           "endedAtMs": int((now - 2600) * 1000), "durationS": 1400, "result": "clear", "bossesKilled": 6, "bossesTotal": 6, "wipes": 0,
+           "comp": [{"name": n} for n in NAMES[:5]], "players": ["Squid"]}]
+    return {"real": real, "sim": sim, "bg": bg, "dc": dc, "worldOn": True, "mondeOn": True}
 
 
 def _demo_monde(now):
@@ -474,4 +501,4 @@ def _demo_events(now):
     return out
 
 
-DEMO = {"world": _demo_world, "economy": _demo_economy, "groups": _demo_groups, "monde": _demo_monde}
+DEMO = {"world": _demo_world, "economy": _demo_economy, "monde": _demo_monde}

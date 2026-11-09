@@ -218,3 +218,21 @@ Chaque module écrit dans son propre fichier : deux modules qui écrivent le mê
 - PerfMon coupé : la page donne la commande (`.playerbots pmon toggle`, MJ) et la clé `AiPlayerbot.PerfMonEnabled = 1`.
 - Les courbes sur 6 h (tick, bots en ligne) sont gardées dans `data/<royaume>/vivant-world.json` et reprises au redémarrage du dashboard.
 - runs.jsonl (DC) : rotation à 5 Mo en gardant le `.1`, comme events.jsonl.
+
+## 15. Groupes et donjons branchés (09/11)
+Le dashboard ne lit plus de `groups.json`. L'onglet assemble trois sources :
+- **CoA SquidBot** (coa-3.0-live 24174435) : `world.json` → `groups`, selon le §13, avec ces différences :
+  - `dungeon` et `dc` valent toujours null ; `map` est ajouté ; `byDungeon` est rangé par carte.
+  - `bossesTotal` = nombre de rencontres du script d'instance (null sans script). `clear` = toutes les rencontres faites.
+  - Un run commence au passage de 10 s qui suit l'entrée. `result` vaut `left` s'il n'est ni terminé ni fini sur un wipe.
+  - `groups` vaut null tant qu'aucun run n'a eu lieu.
+- **CoA Monde** (coa-3.0-monde a9d79274) : `monde.json` → `dungeon_sim` et `bg_sim` (null quand la brique est coupée).
+  - `dungeon_sim.running[]` : dungeon (id de carte), dungeonName, faction, level, bots, phase (gathering | inside | back), startedAt, endsAt, bosses.
+  - `bg_sim` : `running[]` {bg, bgName, levelMin, levelMax, alliance, horde, phase, startedAt, endsAt} ; `today` {since, matches, allianceWins, hordeWins, honor, purchases} ; `last[]` {bg, bgName, levelMin, levelMax, bots, winner, durationS, honor, at}.
+  - Un run simulé compte quand son butin est tiré, au retour du premier bot.
+- **Dungeon Clear** : `runs.jsonl` (§3 + `instance`), lignes du jeu réel à venir sur dc-3.0, rotation à 5 Mo.
+
+Ce que montre la page :
+- Tuiles : runs du jour, réels + simulés ; terminés et wipes, réels seulement ; boss tués, réels + simulés ; groupes en cours ; personnages en donjon, `everyone` + bots des runs simulés.
+- Cartes : groupes réels en cours, donjons simulés en cours, par donjon, derniers runs réels, derniers runs simulés, champs de bataille simulés (en cours, bilan du jour, derniers), détail Dungeon Clear.
+- Chaque source absente ou coupée dit quoi activer : `AiPlayerbot.CoaWorld.DungeonSim.Enable`, `AiPlayerbot.CoaWorld.BgSim.Enable`, ou les fichiers du §14.

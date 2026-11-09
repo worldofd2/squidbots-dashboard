@@ -11,6 +11,12 @@ const VIVANT_WORDS = {
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", inBg: "In battlegrounds and arenas", pvpAll: n => n + " in PvP in all",
     demoTab: "Made-up figures: nothing on this tab comes from the server yet.",
+    realNow: "Real groups in instances", simNow: "Simulated dungeons", bgNow: "Simulated battlegrounds", lastReal: "Last real runs", lastSim: "Last simulated runs",
+    dcRuns: "Dungeon Clear runs (detail)", leader: "led by", noRealRun: "No real run since the server start.", noSim: "No simulated dungeon right now.", noBg: "No simulated battleground right now.",
+    simOff: "Simulated dungeons are off: AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 in playerbots.conf.", bgOff: "Simulated battlegrounds are off: AiPlayerbot.CoaWorld.BgSim.Enable = 1 in playerbots.conf.",
+    phase: { gathering: "gathering", inside: "inside", back: "coming back", playing: "playing" }, faction: { alliance: "Alliance", horde: "Horde" },
+    realSim: (a, b) => a + " real · " + b + " simulated", realOnly: "real groups", sinceAt: t => "since " + t, simItems: n => n + " items looted by simulated runs today",
+    bgToday: (m, a, h, hon) => "Today: " + m + " matches, Alliance " + a + " · Horde " + h + " wins, " + hon + " honor", won: side => side + " won", honor: "honor",
     everyone: "Everyone online", allChars: "Characters online", whoCols: ["Players", "Alts", "Bots", "All"], split: (p, a, b) => p + " players · " + a + " alts · " + b + " bots",
     place: { arena: "Arena", battleground: "Battleground", raid: "Raid", dungeon: "Dungeon", capital: "Capital", world: "Out in the world" },
     raidPart: n => "of which " + n + " in a raid", everyoneHelp: "Players, their alts and party bots, and the random bots; each one counted once, in the first place that fits: arena, battleground, raid, dungeon, capital, world.", soon: "comes with CoA Bots 3.0", perfOff: "PerfMon is off on this realm: no cost by strategy. Turn it on with .playerbots pmon toggle (game master, in game or at the world console), or AiPlayerbot.PerfMonEnabled = 1 in playerbots.conf.",
@@ -44,7 +50,7 @@ const VIVANT_WORDS = {
     by: "by", forWhom: "for", profit: "profit", auctionsWeek: "Auctions, 48 h",
     runsToday: "Runs today", cleared: "Cleared", wipes: "Wipes", bossKills: "Bosses killed", running: "Running now",
     noRun: "No group in a dungeon right now.", dungeon: "Dungeon", runs: "Runs", median: "Median", best: "Best", started: "started",
-    bosses: "bosses", lastRuns: "Last runs", result: { clear: "cleared", wipe: "wiped", aborted: "aborted", setup_failed: "failed to start" }, difficulty: ["", "heroic", "mythic"], perDungeon: "By dungeon",
+    bosses: "bosses", lastRuns: "Last runs", result: { clear: "cleared", wipe: "wiped", aborted: "aborted", setup_failed: "failed to start", left: "left" }, difficulty: ["", "heroic", "mythic"], perDungeon: "By dungeon",
     tick: "World tick", tickFoot: (p, m) => (p === null ? "" : "p95 " + p + " ms · ") + (m === null ? "" : "max " + m + " ms"), botsCpu: "Bots per tick", botsCpuFoot: p => "p95 " + p + " ms",
     build: "Snapshot cost", buildFoot: "on the world thread, all files", strategies: "Cost by strategy, microseconds per tick",
     stuckList: "Stuck bots", noStuck: "No bot is stuck.", since: "since", tickChart: "Tick (ms), 6 h", botsChart: "Bots online, 6 h", curveWait: "The curve draws itself as readings come in: a point every 5 minutes while this page is open.",
@@ -58,6 +64,12 @@ const VIVANT_WORDS = {
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", inBg: "En champ de bataille ou arène", pvpAll: n => n + " en JcJ au total",
     demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.",
+    realNow: "Groupes réels en instance", simNow: "Donjons simulés", bgNow: "Champs de bataille simulés", lastReal: "Derniers runs réels", lastSim: "Derniers runs simulés",
+    dcRuns: "Runs Dungeon Clear (détail)", leader: "mené par", noRealRun: "Aucun run réel depuis le démarrage du serveur.", noSim: "Aucun donjon simulé en ce moment.", noBg: "Aucun champ de bataille simulé en ce moment.",
+    simOff: "Les donjons simulés sont coupés : AiPlayerbot.CoaWorld.DungeonSim.Enable = 1 dans playerbots.conf.", bgOff: "Les champs de bataille simulés sont coupés : AiPlayerbot.CoaWorld.BgSim.Enable = 1 dans playerbots.conf.",
+    phase: { gathering: "rassemblement", inside: "à l’intérieur", back: "retour", playing: "en cours" }, faction: { alliance: "Alliance", horde: "Horde" },
+    realSim: (a, b) => a + " réels · " + b + " simulés", realOnly: "groupes réels", sinceAt: t => "depuis " + t, simItems: n => n + " objets ramassés par les runs simulés aujourd’hui",
+    bgToday: (m, a, h, hon) => "Aujourd’hui : " + m + " matchs, victoires Alliance " + a + " · Horde " + h + ", " + hon + " points d’honneur", won: side => "victoire " + side, honor: "honneur",
     everyone: "Tout le monde en ligne", allChars: "Personnages en ligne", whoCols: ["Joueurs", "Alts", "Bots", "Total"], split: (p, a, b) => p + " joueurs · " + a + " alts · " + b + " bots",
     place: { arena: "Arène", battleground: "Champ de bataille", raid: "Raid", dungeon: "Donjon", capital: "Capitale", world: "Dans le monde" },
     raidPart: n => "dont " + n + " en raid", everyoneHelp: "Les joueurs, leurs alts et bots de groupe, et les bots aléatoires ; chacun compté une fois, au premier lieu qui convient : arène, champ de bataille, raid, donjon, capitale, monde.", soon: "arrive avec CoA Bots 3.0", perfOff: "PerfMon est coupé sur ce royaume : pas de coût par stratégie. Active-le avec .playerbots pmon toggle (maître de jeu, en jeu ou à la console du monde), ou AiPlayerbot.PerfMonEnabled = 1 dans playerbots.conf.",
@@ -91,7 +103,7 @@ const VIVANT_WORDS = {
     by: "par", forWhom: "pour", profit: "bénéfice", auctionsWeek: "Enchères, 48 h",
     runsToday: "Runs du jour", cleared: "Terminés", wipes: "Wipes", bossKills: "Boss tués", running: "En cours",
     noRun: "Aucun groupe en donjon pour l'instant.", dungeon: "Donjon", runs: "Runs", median: "Médiane", best: "Record", started: "commencé",
-    bosses: "boss", lastRuns: "Derniers runs", result: { clear: "terminé", wipe: "wipe", aborted: "abandonné", setup_failed: "échec au départ" }, difficulty: ["", "héroïque", "mythique"], perDungeon: "Par donjon",
+    bosses: "boss", lastRuns: "Derniers runs", result: { clear: "terminé", wipe: "wipe", aborted: "abandonné", setup_failed: "échec au départ", left: "quitté" }, difficulty: ["", "héroïque", "mythique"], perDungeon: "Par donjon",
     tick: "Tick du monde", tickFoot: (p, m) => (p === null ? "" : "p95 " + p + " ms · ") + (m === null ? "" : "max " + m + " ms"), botsCpu: "Bots par tick", botsCpuFoot: p => "p95 " + p + " ms",
     build: "Coût des snapshots", buildFoot: "sur le thread monde, tous fichiers", strategies: "Coût par stratégie, microsecondes par tick",
     stuckList: "Bots coincés", noStuck: "Aucun bot coincé.", since: "depuis", tickChart: "Tick (ms), 6 h", botsChart: "Bots en ligne, 6 h", curveWait: "La courbe se dessine au fil des relevés : un point toutes les 5 minutes tant que cette page est ouverte.",
@@ -136,8 +148,6 @@ function renderVivant() {
     const say = topic === "groups" ? w.noDataYet : w.missing(w.files[topic], OPTION_KEYS[topic]);
     vbody.innerHTML = '<section class="card"><p class="empty">' + esc(say) + "</p></section>" + (VIVANT_TAB === "health" ? liveLogCard(w) : "");
     if (VIVANT_TAB === "health") showLiveLog(w);
-    // Dungeon Clear's finished runs (runs.jsonl) can come before the live groups: show them.
-    if (topic === "groups" && ((VIVANT.groups || {}).last || []).length) vbody.insertAdjacentHTML("beforeend", lastRunsCard(w, VIVANT.groups.last));
   } else ({ population: vivantPopulation, monde: vivantMonde, economy: vivantEconomy, groups: vivantGroups, health: vivantHealth, events: vivantEvents })[VIVANT_TAB](vbody, w);
   const q = document.getElementById("vvLogQ");
   if (q && typing) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
@@ -328,29 +338,66 @@ function lastRunsCard(w, runs) {
 }
 
 function vivantGroups(body, w) {
-  // Field names are Dungeon Clear's (runId, dungeonName, startedAtMs, bossesKilled…): see LIAISON-3.0.md.
+  // Three writers (LIAISON-3.0 §13): CoA SquidBot's real instance runs (world.json "groups", null before the first run),
+  // CoA World's simulated dungeons and battlegrounds (monde.json, null when off), Dungeon Clear's finished runs (runs.jsonl).
   const d = VIVANT.groups || {};
+  const real = d.real, sim = d.sim, bg = d.bg, dc = d.dc || [];
+  const rt = (real && real.today) || {}, st = (sim && sim.today) || {}, bt = (bg && bg.today) || {};
   const fake = (VIVANT.demo || []).includes("groups") ? '<div class="banner">' + esc(w.demoTab) + "</div>" : "";
-  const t = d.today || {};
-  const sec = msTime => msTime / 1000;
-  const label = r => esc(r.dungeonName || r.dungeon) + (r.difficulty ? ' <span class="meta">' + esc(w.difficulty[r.difficulty] || "") + "</span>" : "");
-  const running = (d.running || []).map(r => '<div class="zone-row"><div><strong>' + label(r) + '</strong><div class="meta">' +
-    r.bots + " bots" + (r.players ? " + " + r.players + " " + esc(w.players.toLowerCase()).replace(/s$/, r.players > 1 ? "s" : "") : "") + " · " +
-    esc(w.started) + " " + esc(ago(sec(r.startedAtMs))) + (r.wipes ? " · " + r.wipes + " " + esc(w.wipes.toLowerCase()) : "") +
-    '</div></div><div class="bar" title="' + r.bossesKilled + "/" + r.bossesTotal + '"><i style="width:' + (r.bossesKilled / Math.max(1, r.bossesTotal) * 100) +
-    '%"></i></div><div class="meta">' + r.bossesKilled + "/" + r.bossesTotal + " " + esc(w.bosses) + "</div></div>").join("");
-  const dungeons = (d.byDungeon || []).map(b => "<tr><td>" + esc(b.dungeonName || b.dungeon) + '</td><td class="r">' + b.runs + '</td><td class="r">' + b.cleared +
-    '</td><td class="r">' + b.wipes + '</td><td class="r">' + duration(b.medianS) + '</td><td class="r">' + duration(b.bestS) + "</td></tr>").join("");
-  const last = (d.last || []).map(r => "<tr><td>" + label(r) + '<div class="meta">' + esc((r.comp || []).map(c => c.name).concat(r.players || []).join(", ")) +
-    "</div></td><td>" + esc(w.result[r.result] || r.result) + ' <span class="meta">' + r.bossesKilled + "/" + r.bossesTotal + '</span></td><td class="r">' +
-    duration(r.durationS) + '</td><td class="r">' + (r.wipes || 0) + '</td><td class="r meta">' + esc(ago(sec(r.endedAtMs))) + "</td></tr>").join("");
-  body.innerHTML = fake + topicError(d) + vivantFigures([[w.runsToday, num(t.runs), ""], [w.cleared, num(t.cleared), Math.round(t.cleared / Math.max(1, t.runs) * 100) + " %"],
-    [w.wipes, num(t.wipes), ""], [w.bossKills, num(t.bossKills), ""], [w.running, num((d.running || []).length), ""], [w.busy, num((d.running || []).reduce((s, r) => s + r.bots, 0)), "bots"]]) +
-    '<section class="card"><h2>' + esc(w.running) + "</h2>" + (running || '<p class="empty">' + esc(w.noRun) + "</p>") + "</section>" +
-    '<section class="card"><h2>' + esc(w.perDungeon) + '</h2><div class="scroll"><table><thead><tr><th>' + esc(w.dungeon) + '</th><th class="r">' +
-      esc(w.runs) + '</th><th class="r">' + esc(w.cleared) + '</th><th class="r">' + esc(w.wipes) + '</th><th class="r">' + esc(w.median) + '</th><th class="r">' +
-      esc(w.best) + "</th></tr></thead><tbody>" + dungeons + "</tbody></table></div></section>" +
-    '<section class="card"><h2>' + esc(w.lastRuns) + '</h2><div class="scroll"><table><tbody>' + last + "</tbody></table></div></section>";
+  const hhmm = t => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const note = text => '<p class="empty">' + esc(text) + "</p>";
+  const table = (head, rows) => '<div class="scroll"><table>' + (head ? "<thead><tr>" + head + "</tr></thead>" : "") + "<tbody>" + rows + "</tbody></table></div>";
+  const name = r => esc(r.dungeonName || r.bgName || "#" + (r.map || r.dungeon || r.bg)) +
+    (r.difficulty ? ' <span class="meta">' + esc(w.difficulty[r.difficulty] || "") + "</span>" : "") + (r.kind === "raid" ? ' <span class="meta">raid</span>' : "");
+  const who = r => w.split(num(r.players || 0), num(r.alts || 0), num(r.bots || 0));
+  const progress = (k, t) => t ? '<div class="bar" title="' + k + "/" + t + '"><i style="width:' + (k / Math.max(1, t) * 100) + '%"></i></div><div class="meta">' +
+    k + "/" + t + " " + esc(w.bosses) + "</div>" : '<div class="meta">' + num(k) + " " + esc(w.bosses) + "</div>";
+  const realRunning = real ? (real.running || []).map(r => '<div class="zone-row"><div><strong>' + name(r) + '</strong><div class="meta">' + esc(who(r)) +
+    (r.leader ? " · " + esc(w.leader) + " " + esc(r.leader) : "") + " · " + esc(w.started) + " " + esc(ago(r.startedAt)) +
+    (r.wipes ? " · " + r.wipes + " " + esc(w.wipes.toLowerCase()) : "") + "</div></div>" + progress(r.bossesKilled || 0, r.bossesTotal) + "</div>").join("") : "";
+  const simRunning = sim ? (sim.running || []).map(r => '<div class="zone-row"><div><strong>' + name(r) + '</strong><div class="meta">' +
+    esc([w.faction[r.faction] || r.faction, r.level ? w.level + " " + r.level : "", r.bots + " bots", w.phase[r.phase] || r.phase,
+      r.endsAt ? w.ends + " " + hhmm(r.endsAt) : ""].filter(Boolean).join(" · ")) + '</div></div><div class="meta">' + (r.bosses ? num(r.bosses) + " " + esc(w.bosses) : "") +
+    "</div></div>").join("") : "";
+  const bgRunning = bg ? (bg.running || []).map(r => '<div class="zone-row"><div><strong>' + name(r) + '</strong><div class="meta">' +
+    esc([r.levelMin ? w.level + " " + r.levelMin + "-" + r.levelMax : "", w.alliance + " " + num(r.alliance || 0) + " · " + w.horde + " " + num(r.horde || 0),
+      w.phase[r.phase] || r.phase, r.endsAt ? w.ends + " " + hhmm(r.endsAt) : ""].filter(Boolean).join(" · ")) + "</div></div></div>").join("") : "";
+  const byRows = real ? (real.byDungeon || []).map(b => "<tr><td>" + name(b) + '</td><td class="r">' + num(b.runs) + '</td><td class="r">' + num(b.cleared) +
+    '</td><td class="r">' + num(b.wipes) + '</td><td class="r">' + (b.medianS ? duration(b.medianS) : "–") + '</td><td class="r">' + (b.bestS ? duration(b.bestS) : "–") + "</td></tr>").join("") : "";
+  const realLast = real ? (real.last || []).map(r => "<tr><td>" + name(r) + '<div class="meta">' + esc(who(r)) + "</div></td><td>" + esc(w.result[r.result] || r.result) +
+    ' <span class="meta">' + num(r.bossesKilled || 0) + (r.bossesTotal ? "/" + r.bossesTotal : "") + '</span></td><td class="r">' +
+    (r.endedAt && r.startedAt ? duration(r.endedAt - r.startedAt) : "–") + '</td><td class="r">' + num(r.wipes || 0) + '</td><td class="r meta">' + esc(ago(r.endedAt)) + "</td></tr>").join("") : "";
+  const simLast = sim ? (sim.last || []).map(r => "<tr><td>" + name(r) + '<div class="meta">' + num(r.bots) + ' bots</div></td><td class="r">' + num(r.bossesKilled || 0) + " " +
+    esc(w.bosses) + '</td><td class="r">' + duration(r.durationS || 0) + '</td><td class="r meta">' + esc(ago(r.at)) + "</td></tr>").join("") : "";
+  const bgLast = bg ? (bg.last || []).map(r => "<tr><td>" + name(r) + '<div class="meta">' + num(r.bots) + " bots" + (r.levelMin ? " · " + w.level + " " + r.levelMin + "-" + r.levelMax : "") +
+    "</div></td><td>" + esc(r.winner ? w.won(r.winner === "alliance" ? w.alliance : w.horde) : "–") + '</td><td class="r">' + duration(r.durationS || 0) + '</td><td class="r">' +
+    num(r.honor || 0) + " " + esc(w.honor) + '</td><td class="r meta">' + esc(ago(r.at)) + "</td></tr>").join("") : "";
+  const ev = VIVANT.world && VIVANT.world.everyone && VIVANT.world.everyone.places;
+  const all = m => (m ? (m.players || 0) + (m.alts || 0) + (m.bots || 0) : 0);
+  const inReal = ev ? all(ev.dungeon) + all(ev.raid) : real ? (real.running || []).reduce((n, r) => n + (r.players || 0) + (r.alts || 0) + (r.bots || 0), 0) : null;
+  const inSim = sim ? (sim.running || []).reduce((n, r) => n + (r.bots || 0), 0) : 0;
+  const realOff = !d.worldOn ? w.missing(w.files.world, OPTION_KEYS.world) : !real ? w.noRealRun : "";
+  const simOff = !d.mondeOn ? w.missing(w.files.monde, OPTION_KEYS.monde) : !sim ? w.simOff : "";
+  const bgOff = !d.mondeOn ? w.missing(w.files.monde, OPTION_KEYS.monde) : !bg ? w.bgOff : "";
+  const sinceFoot = t => t ? w.sinceAt(hhmm(t)) : "";
+  body.innerHTML = fake + vivantFigures([
+    [w.runsToday, real || sim ? num((rt.runs || 0) + (st.runs || 0)) : "–", sim ? w.realSim(num(rt.runs || 0), num(st.runs || 0)) : sinceFoot(rt.since)],
+    [w.cleared, real ? num(rt.cleared || 0) : "–", real && rt.runs ? Math.round((rt.cleared || 0) / rt.runs * 100) + " %" : ""],
+    [w.wipes, real ? num(rt.wipes || 0) : "–", w.realOnly],
+    [w.bossKills, real || sim ? num((rt.bossKills || 0) + (st.bossKills || 0)) : "–", sim ? w.realSim(num(rt.bossKills || 0), num(st.bossKills || 0)) : ""],
+    [w.running, num((real ? (real.running || []).length : 0) + (sim ? (sim.running || []).length : 0)), ""],
+    [w.busy, inReal === null && !sim ? "–" : num((inReal || 0) + inSim), sim ? w.realSim(num(inReal || 0), num(inSim)) : ""]]) +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.realNow) + "</h2>" + (realOff ? note(realOff) : realRunning || note(w.noRun)) + "</section>" +
+    '<section class="card"><h2>' + esc(w.simNow) + "</h2>" + (simOff ? note(simOff) : simRunning || note(w.noSim)) +
+      (sim && st.items ? '<p class="meta">' + esc(w.simItems(num(st.items))) + "</p>" : "") + "</section></div>" +
+    (byRows ? '<section class="card"><h2>' + esc(w.perDungeon) + "</h2>" + table("<th>" + esc(w.dungeon) + '</th><th class="r">' + esc(w.runs) + '</th><th class="r">' +
+      esc(w.cleared) + '</th><th class="r">' + esc(w.wipes) + '</th><th class="r">' + esc(w.median) + '</th><th class="r">' + esc(w.best) + "</th>", byRows) + "</section>" : "") +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.lastReal) + "</h2>" + (realLast ? table("", realLast) : note(realOff || w.noRealRun)) + "</section>" +
+    '<section class="card"><h2>' + esc(w.lastSim) + "</h2>" + (simLast ? table("", simLast) : note(simOff || w.noSim)) + "</section></div>" +
+    '<section class="card"><h2>' + esc(w.bgNow) + "</h2>" + (bgOff ? note(bgOff) :
+      (bgRunning || note(w.noBg)) + '<p class="meta">' + esc(w.bgToday(num(bt.matches || 0), num(bt.allianceWins || 0), num(bt.hordeWins || 0), num(bt.honor || 0))) + "</p>" +
+      (bgLast ? table("", bgLast) : "")) + "</section>" +
+    (dc.length ? lastRunsCard(w, dc).replace(esc(w.lastRuns), esc(w.dcRuns)) : "");
 }
 
 const KIND_COLORS = { invasion: "var(--horde)", rush: "#c96b3a", server_first: "var(--gold-bright)", guild: "var(--accent)", stuck: "#d6a03f",
@@ -379,7 +426,7 @@ document.addEventListener("click", event => {
 function vivantHealth(body, w) {
   const d = VIVANT.world || {};
   const h = d.health || {}, tick = h.tick_ms || {}, cpu = h.bots_us_per_tick || {};
-  const real = ["world", "economy", "groups"].filter(k => !(VIVANT.demo || []).includes(k));
+  const real = ["world", "economy", "monde"].filter(k => !(VIVANT.demo || []).concat(VIVANT.missing || []).includes(k));
   const builds = real.reduce((s, k) => s + ((VIVANT[k] || {}).buildUs || 0), 0);
   const stuck = (h.stuck || []).map(s => "<tr><td>" + esc(s.name) + '</td><td class="meta">' + esc(s.zone || "") + "</td><td>" + esc(s.why) +
     '</td><td class="r meta">' + esc(w.since) + " " + esc(ago(s.since)) + "</td></tr>").join("");
