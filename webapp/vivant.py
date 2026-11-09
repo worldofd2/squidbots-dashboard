@@ -41,6 +41,8 @@ class Vivant:
         self.lock = threading.Lock()
         self.cache = {}
         self.watched = 0.0
+        self.asked = 0.0        # last call of get(): the page polls every 15 s while it is shown
+        self.resumed = 0.0      # when the watch began again after a pause
 
     def _watch(self, topics):
         """Tell the module someone looks. The module makes its folder only when it writes, and writes only once watched:
@@ -99,15 +101,20 @@ class Vivant:
 
     def get(self):
         with self.lock:
-            self._watch(TOPICS)
             now = time.time()
+            # The modules write only while watch.json is under 90 s old. After a pause (page closed or hidden) the files
+            # are old until each module writes again: not "stale" before it had 3 x every to do so.
+            if now - self.asked > 90:
+                self.resumed = now
+            self.asked = now
+            self._watch(TOPICS)
             out = {"demo": [], "stale": []}
             for topic in TOPICS:
                 data = self._read(topic)
                 if data is None:
                     data = DEMO[topic](now)
                     out["demo"].append(topic)
-                elif data.get("at") and now - float(data["at"]) > 3 * data.get("every", 10):
+                elif data.get("at") and now - float(data["at"]) > 3 * data.get("every", 10) and now - self.resumed > 3 * data.get("every", 10) + WATCH_EVERY:
                     out["stale"].append(topic)
                 out[topic] = data
             if "economy" not in out["demo"] and not out["economy"].get("error"):
