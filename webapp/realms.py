@@ -17,8 +17,9 @@ MODES = {
     "wildcard": {"id": 2, "name": "Darkmoon (Wildcard)", "prefix": "rndwc", "step": 1},
     "reborn": {"id": 3, "name": "Bronzebeard (Reborn)", "prefix": "rndwr", "step": 2},
     "dawnrise": {"id": 4, "name": "Dawnrise (Free Pick)", "prefix": "rndfp", "step": 3},
+    "living": {"id": 5, "name": "Squid World", "prefix": "rndlv", "step": 4},
 }
-# A mode this dashboard does not know yet (the Living World realm, say): its realm.json and the configs the launcher
+# A mode this dashboard does not know yet (one newer than this list, say): its realm.json and the configs the launcher
 # wrote for it give the id, name, prefix and ports; never left out of the list for want of a line above.
 # Files the dashboard wrote beside itself before it knew of realms: the CoA realm keeps them there.
 LEGACY = {"kills.json", "levels.json", "history.json", "xp-history.json", "baseline.json", "pvp.json"}

@@ -18,7 +18,7 @@
 - **Server page**: tick and players from CoA Bots when the world console is off; a stop and start between two
   rounds (a new worldserver put in place) is recorded as a restart.
 - **World page**: the hours of this run of the server (the total underneath), and the bots online at the level cap.
-- **Realms**: a realm of a mode the dashboard does not list yet (the Living World realm) is shown from its own
+- **Realms**: a realm of a mode the dashboard does not list yet (Squid World, the launcher's own levelling and living-world realm) is shown from its own
   `realm.json` and configs; with the CoA realm stopped and a single other realm running, the page opens that one.
 - `dashboard.json`: paths written with forward slashes work.
 - An existing `dashboard.json` needs no change: the new keys (`squidbotDir`, `vivantDemo`) have working defaults.
