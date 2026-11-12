@@ -99,14 +99,15 @@ class Monitor:
     realm's live snapshot, or None. `every` seconds between rounds; 0 turns sampling off (state is then read
     on demand, without history)."""
 
-    def __init__(self, realms, root, bots_online, every=60, coa_exe=None, use_ra=True, live=None):
+    def __init__(self, realms, root, bots_online, every=60, coa_exe=None, use_ra=True, live=None, refresh=None):
         self.realms = realms
         self.root = root
         self.bots_online = bots_online
         self.every = every
-        self.coa_exe = (coa_exe or "").lower()
+        self.coa_exe = os.path.normpath(coa_exe) if coa_exe else ""
         self.use_ra = use_ra
         self.live = live        # realm key -> {"tick", "players"} from SquidBot's world.json, when the console gives none
+        self.refresh = refresh  # called before each round: finds the realms the launcher created since the start
         self.lock = threading.Lock()
         self.cpu = procinfo.CpuMeter()
         self.tracks = {r.key: Track(r.file("perf.json")) for r in realms}
@@ -117,14 +118,16 @@ class Monitor:
         """The realm's worldserver pid: the one the launcher or manage.py recorded, when it is still a worldserver;
         for the CoA realm without a record, the worldserver of this repack that no other realm claims."""
         pid = realm.pid()
-        if pid and procinfo.path_of(pid).lower().endswith("worldserver.exe"):
+        if pid and procinfo.path_of(pid).lower().endswith("worldserver.exe") and (realm.key != "coa" or pid not in others):
             return pid
         if realm.key != "coa":
             return 0
+        # Every realm runs the same worldserver.exe: the CoA realm never takes a world another realm recorded, or one
+        # listening on another realm's port (a realm the dashboard does not know yet, say).
         running = procinfo.find("worldserver.exe")
         if self.coa_exe:
             for candidate, path in running.items():
-                if path.lower() == self.coa_exe:
+                if candidate not in others and os.path.normcase(os.path.normpath(path)) == os.path.normcase(self.coa_exe):
                     return candidate
             return 0
         root = os.path.normcase(os.path.abspath(self.root or "")) + os.sep
@@ -172,10 +175,40 @@ class Monitor:
         return state
 
     def _claimed(self):
-        """The pids the launcher recorded for its realms: the CoA realm never takes one of them."""
-        return {realm.pid() for realm in self.realms if realm.key != "coa"} - {0}
+        """The worlds of the other realms, which the CoA realm never takes: the pids the launcher recorded for them,
+        and whatever listens on one of their world ports, those of every Royaumes/<key>/realm.json included."""
+        pids = {realm.pid() for realm in self.realms if realm.key != "coa"}
+        ports = {realm.world_port for realm in self.realms if realm.key != "coa"}
+        for name in glob.glob(os.path.join(glob.escape(self.root or ""), "Royaumes", "*", "realm.json")):
+            saved = _read(name, {})
+            if not isinstance(saved, dict):
+                continue
+            try:
+                ports.add(int(saved.get("worldPort") or 0))
+            except (TypeError, ValueError):
+                pass
+            record = _read(os.path.join(os.path.dirname(name), ".state.json"), {})
+            try:
+                pids.add(int((record if isinstance(record, dict) else {}).get("pid") or 0))
+            except (TypeError, ValueError):
+                pass
+        coa_port = self.realms[0].world_port if self.realms else 0
+        ports -= {0, coa_port}
+        if ports:
+            pids |= {pid for port, pid in procinfo.listeners().items() if port in ports}
+        return pids - {0}
+
+    def add_realm(self, realm):
+        """A realm the launcher created while the dashboard runs: its curves and events from now on."""
+        with self.lock:
+            self.tracks.setdefault(realm.key, Track(realm.file("perf.json")))
 
     def round(self):
+        if self.refresh:
+            try:
+                self.refresh()
+            except Exception as error:  # noqa: BLE001  the known realms are still watched
+                print("Realm discovery failed:", error, flush=True)
         pids = self._claimed()
         changed = set()
         for realm in self.realms:

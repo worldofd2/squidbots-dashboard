@@ -2,6 +2,7 @@
 
     python -B tests/test_ra_gm.py
 """
+import json
 import os
 import socket
 import sys
@@ -164,6 +165,31 @@ class MonitorTest(unittest.TestCase):
         self.assertEqual(watch._crash_reports(), {"reborn"})
         self.assertEqual([e["kind"] for e in watch.tracks["coa"].events], [])
         self.assertIn("x_worldserver", watch.tracks["reborn"].events[0]["text"])
+
+
+    def test_coa_never_takes_a_realm_world_it_does_not_know(self):
+        """A secondary realm's world (recorded in its .state.json) is never taken for the CoA realm's, even with
+        worldserverPath set and before the dashboard knows that realm."""
+        here = tempfile.mkdtemp()
+        place = os.path.join(here, "Royaumes", "living")
+        os.makedirs(place)
+        with open(os.path.join(place, "realm.json"), "w") as out:
+            json.dump({"id": 5, "worldPort": 8485}, out)
+        with open(os.path.join(place, ".state.json"), "w") as out:
+            json.dump({"pid": 4242}, out)
+        coa = realms.Realm("coa", 1, "CoA", {"auth": "a", "characters": "c", "world": "w"}, here, here, [], here, "rndbot",
+                           here=here)
+        exe = os.path.join(here, "worldserver.exe")
+        watch = monitor.Monitor([coa], here, lambda key: None, every=60, coa_exe=exe, use_ra=False)
+        claimed = watch._claimed()
+        self.assertIn(4242, claimed)
+        original = monitor.procinfo.find
+        monitor.procinfo.find = lambda name: {4242: exe}
+        try:
+            self.assertEqual(watch._pid(coa, claimed), 0)
+            self.assertEqual(watch._pid(coa, set()), 4242)
+        finally:
+            monitor.procinfo.find = original
 
 
 class PublicCopyTest(unittest.TestCase):

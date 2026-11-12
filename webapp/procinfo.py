@@ -71,6 +71,32 @@ def path_of(pid):
         _k32.CloseHandle(handle)
 
 
+def listeners():
+    """{port: pid} of the TCP ports (IPv4) a process listens on, from Windows' own table (iphlpapi). {} elsewhere."""
+    if not _OK:
+        return {}
+    try:
+        iphlp = ctypes.WinDLL("iphlpapi")
+        size = wintypes.DWORD(0)
+        iphlp.GetExtendedTcpTable(None, ctypes.byref(size), False, 2, 3, 0)    # AF_INET, TCP_TABLE_OWNER_PID_LISTENER
+        for _ in range(3):
+            buffer = ctypes.create_string_buffer(size.value + 4096)
+            size = wintypes.DWORD(len(buffer))
+            if iphlp.GetExtendedTcpTable(buffer, ctypes.byref(size), False, 2, 3, 0) == 0:
+                break
+        else:
+            return {}
+        count = wintypes.DWORD.from_buffer(buffer).value
+        rows = (wintypes.DWORD * (6 * count)).from_buffer(buffer, 4)    # state, addr, port, raddr, rport, pid
+        found = {}
+        for i in range(count):
+            raw = rows[6 * i + 2]
+            found[((raw & 0xFF) << 8) | ((raw >> 8) & 0xFF)] = int(rows[6 * i + 5])
+        return found
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
 def find(exe_name):
     """{pid: full path} of the running processes named `exe_name` (worldserver.exe, say)."""
     wanted = exe_name.lower()

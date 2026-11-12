@@ -1119,7 +1119,8 @@ def context(key):
 MONITOR = monitor.Monitor(REALMS, ROOT, lambda key: live_count(context(key)),
                           every=int(SETTINGS.get("monitorEvery", 60)), coa_exe=SETTINGS.get("worldserverPath"),
                           use_ra=SETTINGS.get("console", True) is not False,
-                          live=lambda key: context(key).vivant.live_figures())
+                          live=lambda key: context(key).vivant.live_figures(),
+                          refresh=lambda: refresh_realms())
 GM = gm.Gm(ROOT, mysql, os.path.join(HERE, "data", "gm-actions.jsonl"))
 # The server's settings belong to the launcher, which builds every .conf file again at each start: the dashboard
 # only reads them, unless dashboard.json asks for its own Settings page (a server run without the launcher).
@@ -1171,8 +1172,32 @@ def pvp_setup(ctx):
             "storeStatistics": realms.conf_value(world, "Battleground.StoreStatistics.Enable")}
 
 
+REALMS_LOCK = threading.Lock()
+REALMS_LOOKED = [time.time()]
+
+
+def refresh_realms(every=10):
+    """Add the realms the launcher created since the dashboard started (Royaumes/<key>), without a restart."""
+    if SETTINGS.get("realms") is False:
+        return
+    with REALMS_LOCK:
+        if time.time() - REALMS_LOOKED[0] < every:
+            return
+        REALMS_LOOKED[0] = time.time()
+        for realm in realms.discover(ROOT, SETTINGS, HERE, REALMS[0])[1:]:
+            if realm.key in BY_KEY:
+                continue
+            ctx = Context(realm)
+            MONITOR.add_realm(realm)       # its track first: the monitor's round may already see it in REALMS
+            BY_KEY[realm.key] = ctx
+            CONTEXTS.append(ctx)
+            REALMS.append(realm)
+            print("New realm: %s (%s)" % (realm.name, realm.key), flush=True)
+
+
 def realms_overview():
     """GET /api/realms: every realm, its state now, and its figures when they were already read."""
+    refresh_realms()
     out = []
     for ctx in CONTEXTS:
         state = MONITOR.state(ctx.realm.key)
@@ -1186,7 +1211,7 @@ def realms_overview():
 
 def public_contexts():
     """The realms the public copy and the local network page show: turned on, and listed in publicRealms."""
-    return [ctx for ctx in CONTEXTS if not ctx.realm.disabled and ctx.realm.key in PUBLIC_REALMS]
+    return [ctx for ctx in CONTEXTS if not ctx.realm.disabled and (not PUBLIC_REALMS or ctx.realm.key in PUBLIC_REALMS)]
 
 
 def public_realms():
@@ -1897,7 +1922,7 @@ for _realm in REALMS:
     CONTEXTS.append(Context(_realm))
     BY_KEY[_realm.key] = CONTEXTS[-1]
 # The realms the public copy and the local network page show: all of them unless dashboard.json lists some.
-PUBLIC_REALMS = set(SETTINGS.get("publicRealms") or BY_KEY)
+PUBLIC_REALMS = set(SETTINGS.get("publicRealms") or ())     # empty: every realm, those created later too
 
 
 if __name__ == "__main__":
