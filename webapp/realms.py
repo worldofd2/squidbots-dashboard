@@ -18,6 +18,8 @@ MODES = {
     "reborn": {"id": 3, "name": "Bronzebeard (Reborn)", "prefix": "rndwr", "step": 2},
     "dawnrise": {"id": 4, "name": "Dawnrise (Free Pick)", "prefix": "rndfp", "step": 3},
 }
+# A mode this dashboard does not know yet (the Living World realm, say): its realm.json and the configs the launcher
+# wrote for it give the id, name, prefix and ports; never left out of the list for want of a line above.
 # Files the dashboard wrote beside itself before it knew of realms: the CoA realm keeps them there.
 LEGACY = {"kills.json", "levels.json", "history.json", "xp-history.json", "baseline.json", "pvp.json"}
 KEY = re.compile(r"^[a-z]{3,12}$")
@@ -125,13 +127,16 @@ def discover(root, settings, here, coa):
     for key in keys:
         place = os.path.join(folder, key)
         saved = read_json(os.path.join(place, "realm.json"))
-        if not KEY.match(key) or not isinstance(saved, dict) or key not in MODES or key == "coa":
+        if not KEY.match(key) or not isinstance(saved, dict) or key == "coa":
             continue
         configs = os.path.join(place, "configs")
         if not os.path.exists(os.path.join(configs, "worldserver.conf")):
             continue                     # created by an older launcher and never started: nothing to read yet
         modules = os.path.join(configs, "modules")
-        mode = MODES[key]
+        mode = MODES.get(key) or {"id": saved.get("id") or 0, "name": saved.get("name") or key.capitalize(),
+                                  "prefix": "rnd" + key[:2], "step": saved.get("step") or 0}
+        if not (saved.get("id") or mode["id"]):
+            continue                     # an unknown mode without an id in realm.json: no realm to point at
         prefix = conf_value(os.path.join(modules, "playerbots.conf"), "AiPlayerbot.RandomBotAccountPrefix") or mode["prefix"]
         # The ports the realm's worldserver really uses: those of the configs the launcher wrote for it, then realm.json,
         # then the launcher's own rule for a realm that never saved them (the CoA realm's + 100 per step).

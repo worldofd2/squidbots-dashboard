@@ -7,10 +7,10 @@ const REALMS_API = "/api/realms";
 // A server of the launcher runs up to four realms (CoA, Wildcard, Reborn, Dawnrise); the page shows one at a time, chosen by
 // ?realm=<key> (the launcher opens it so) or the last one picked. Each realm's figures come from its own databases
 // and journals: the local page adds realm=<key> to its questions, the public copy reads stats-<key>.json beside stats.json.
-const REALM_KEYS = ["coa", "wildcard", "reborn", "dawnrise"];
+const REALM_ASKED = !!(new URLSearchParams(location.search).get("realm"));
 let REALM = new URLSearchParams(location.search).get("realm") || "";
 try { if (!REALM) REALM = localStorage.getItem("squidbots-realm") || ""; } catch (error) { /* private window */ }
-if (!REALM_KEYS.includes(REALM)) REALM = "coa";
+if (!/^[a-z]{3,12}$/.test(REALM)) REALM = "coa";     // any realm of the launcher; checked against the list of realms below
 let REALMS = null;          // the realms of this server, once read
 // The launcher owns the server's settings: the Settings page and the cards that write a .conf file only come back
 // when dashboard.json asks for them ("settingsPage": true). Known once the realms list answered.
@@ -84,7 +84,7 @@ const WORDS = {
     pageTitles: { world: "World", bots: "Bots", stats: "Stats", realms: "Realms", server: "Server health", vivant: "Living world",
       market: "Auction house", gm: "Game master tools",
       chat: "Chat & Loot", pvp: "PvP", settings: "Settings", armory: "Armory" },
-    realmModes: { coa: "Conquest of Azeroth", wildcard: "Wildcard", reborn: "Warcraft Reborn", dawnrise: "Dawnrise" },
+    realmModes: { coa: "Conquest of Azeroth", wildcard: "Wildcard", reborn: "Warcraft Reborn", dawnrise: "Dawnrise", living: "Living World" },
     realmState: { running: "Online", stopped: "Stopped", starting: "Starting", disabled: "Turned off" },
     realmsTitle: "Every realm of this server", realmsSub: "click a realm to open its pages",
     realmsTotal: "All realms", realmOpen: "Open", realmShown: "Shown",
@@ -210,7 +210,7 @@ const WORDS = {
     pageTitles: { world: "Monde", bots: "Bots", stats: "Statistiques", realms: "Royaumes", server: "Santé du serveur", vivant: "Monde vivant",
       market: "Hôtel des ventes", gm: "Outils de maître de jeu",
       chat: "Chat et butin", pvp: "JcJ", settings: "Réglages", armory: "Armurerie" },
-    realmModes: { coa: "Conquest of Azeroth", wildcard: "Wildcard", reborn: "Warcraft Reborn", dawnrise: "Dawnrise" },
+    realmModes: { coa: "Conquest of Azeroth", wildcard: "Wildcard", reborn: "Warcraft Reborn", dawnrise: "Dawnrise", living: "Living World" },
     realmState: { running: "En ligne", stopped: "Arrêté", starting: "Démarrage", disabled: "Désactivé" },
     realmsTitle: "Tous les royaumes du serveur", realmsSub: "cliquez sur un royaume pour ouvrir ses pages",
     realmsTotal: "Tous les royaumes", realmOpen: "Ouvrir", realmShown: "Affiché",
@@ -421,6 +421,12 @@ async function loadRealms() {
     REALMS = REALMS || [];
   }
   if (!REALMS.some(r => r.key === REALM) && REALM !== "coa") { openRealm("coa"); return; }
+  // One world at a time (a small machine): the CoA realm stopped and a single other one running, open that one,
+  // unless the address asked for a realm.
+  if (!PUBLIC && !REALM_ASKED) {
+    const up = REALMS.filter(r => realmStateOf(r) !== "stopped" && realmStateOf(r) !== "disabled");
+    if (up.length === 1 && up[0].key !== REALM && REALM === "coa") { openRealm(up[0].key); return; }
+  }
   renderRealmSwitch();
   renderRealmChip();
   for (const node of document.querySelectorAll('.nav-link[href="#realms"]')) node.hidden = REALMS.length < 2;
