@@ -243,3 +243,16 @@ Ce que montre la page :
 ## 16. Rattrapage d’XP et raid de capitale (12/11)
 - **world.json `leveling`** (CoA SquidBot, CoaCatchUp) : `{catchUp, front, humans, surveyedAt, bots: [bots aléatoires par niveau, index 0 = niveau 1], hourly: [{at, front, humans, bots, p10, p50, p90}] (72 h au plus)}`. Le front est la médiane des joueurs actifs ; il vaut 0 quand le rattrapage est coupé ou qu’il y a trop peu de joueurs. Population affiche une carte « Rattrapage d’XP » : état et front, histogramme des bots par niveau (échelle racine, niveau au survol), p10/p50/p90 du moment, et une courbe horaire p10/p50/p90 avec le front en pointillé.
 - **monde.json `capital_raid`** (CoA Monde) : null quand la brique est coupée, `{running: null}` sans raid en cours, sinon `{city, attackers, phase: gathering|assault, step, steps, bots, defenders, kingHealthPct, startedAt, assaultAt, endsAt}`. Vie du monde le montre dans « En ce moment » et sous la tuile Invasions. Ruées, invasions et raids sont lancés par un MJ par défaut : la page n’annonce jamais de « prochain ».
+
+## 17. Royaumes secondaires (Living World, 12/11)
+
+- Le dashboard montre tout dossier `Royaumes\<clé>` du launcher, même d'un mode qu'il ne connaît pas : id et nom pris dans `realm.json`, ports dans `configs\worldserver.conf`, préfixe dans `configs\modules\playerbots.conf`, pid dans `.state.json`, bases `acore_characters_<clé>` et `acore_playerbots_<clé>`. Conventions confirmées par le Launcher sur un vrai Malfurion (id 5).
+- `watch.json` et les fichiers du module sont lus dans `Royaumes\<clé>\Logs\squidbot\` : le launcher impose `AiPlayerbot.CoaDataDir` vide sur chaque royaume secondaire (launcher a794655).
+- Royaume CoA arrêté et un seul autre en marche : la page ouvre celui-là, sauf si l'adresse donne `?realm=`.
+- La clé `"realms"` de `dashboard.json` ne masque les royaumes secondaires que si elle vaut `false`. Absente ou `true`, ils sont montrés. Le launcher ne l'écrit jamais.
+
+## 18. Fusion 3.0.0 (12/11)
+
+- `feature/vivant-3.0` fusionnée dans `main` en local, `VERSION` 3.0.0, changelog 3.0.0. Ni tag ni push : ils attendent le go de l'user.
+- Dans le paquet, le dépôt va dans `CoA-Bots\Tools\Dashboard`. Seuls les fichiers suivis par git sont livrés (`git archive`). Ce qui est propre au joueur n'est pas dans le dépôt et ne doit jamais être écrasé ni effacé : `dashboard.json`, `data\`, `history.json`, `xp-history.json`, `levels.json`, `kills.json`, `baseline.json`, `pvp.json`, `maps\`, `icons\`, `config-backups\`, `alerte-discord.txt`.
+- Un `dashboard.json` existant (2.9.x) marche tel quel : les nouvelles clés (`squidbotDir`, `vivantDemo`) ont des défauts sûrs.

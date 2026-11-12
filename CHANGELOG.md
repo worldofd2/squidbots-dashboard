@@ -1,5 +1,28 @@
 # Changelog
 
+## 3.0.0 (for CoA Bots 3.0)
+
+- **Living world**, a new page fed by the files CoA Bots 3.0 writes in `<LogsDir>/squidbot/` while the page is open
+  (nothing is written when nobody looks):
+  - **Population**: everyone online (players, their alts and bots, random bots), where they are (arena, battleground,
+    raid, dungeon, capital, world), by faction and zone, what they do, souls and surnames, and the **XP catch-up**
+    (players' front, random bots by level, hourly percentiles).
+  - **World life**: invasions, rushes, the capital raid, guilds and guild orders, server firsts, stuck bots over 24 h.
+  - **Economy**: auction house, crafting, gathering, smelting, disenchanting, prospecting, the auction clock and the
+    auction house bot over 24 h.
+  - **Groups & dungeons**: real bot groups, simulated dungeons and battlegrounds, the last in-game dungeon runs.
+  - **Health**: the bots' tick outside the ramp-up, and CoaBots.log live with a filter.
+  - **Journal**: the world's events.
+  - A file a realm does not write says which option turns it on; no made-up figures (`"vivantDemo": true` shows
+    them on a test realm only). Curves over 6 h are kept on disk.
+- **Server page**: tick and players from CoA Bots when the world console is off; a stop and start between two
+  rounds (a new worldserver put in place) is recorded as a restart.
+- **World page**: the hours of this run of the server (the total underneath), and the bots online at the level cap.
+- **Realms**: a realm of a mode the dashboard does not list yet (the Living World realm) is shown from its own
+  `realm.json` and configs; with the CoA realm stopped and a single other realm running, the page opens that one.
+- `dashboard.json`: paths written with forward slashes work.
+- An existing `dashboard.json` needs no change: the new keys (`squidbotDir`, `vivantDemo`) have working defaults.
+
 ## 2.9.3 (for CoA Bots 2.9.3)
 
 - Version aligned with CoA Bots 2.9.3 for the CoA Server Manager; no functional change.
