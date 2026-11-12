@@ -11,6 +11,12 @@ const VIVANT_WORDS = {
     stale: t => "Not updated for a while: " + t + ". The module has stopped writing, or the realm is down.",
     online: "Bots online", players: "Players", inCapitals: "In capitals", busy: "In a dungeon", stuck: "Stuck", zonesUsed: "Zones with bots", inBg: "In battlegrounds and arenas", pvpAll: n => n + " in PvP in all",
     demoTab: "Made-up figures: nothing on this tab comes from the server yet.",
+    leveling: "XP catch-up", catchOn: "Catch-up on", catchOff: "Catch-up off (AiPlayerbot.CoaFreshStart.CatchUp.Enable = 0): the bots level at the normal pace.",
+    frontIs: (lv, n) => "Players' front: level " + lv + " (median of " + n + " active players)", noFront: n => "No players' front: " + n + " active players, too few to set one.",
+    surveyed: t => "counted " + t + " ago, every 10 minutes", byLevel: "Random bots by level (online or not)", pcts: (a, b, c) => "p10 " + a + " · p50 " + b + " · p90 " + c,
+    hourlyTitle: "Bots' levels and players' front, hour by hour", front: "Players' front", hourlyWait: "One point an hour: the curve starts after the second hour.",
+    raid: "Capital raid", raidPhase: { gathering: "gathering", assault: "assault" }, raidLine: (a, d) => a + " attackers · " + d + " defenders",
+    king: n => "leader at " + n + " % health", stepOf: (a, b) => "step " + a + "/" + b, assaultAt: "assault",
     realNow: "Real groups in instances", simNow: "Simulated dungeons", bgNow: "Battlegrounds and arenas", bgSimOff: "Simulated battlegrounds: off.", bgSimTitle: "Simulated",
     noRealBg: "Nobody in a battleground or an arena right now.", lastReal: "Last real runs", lastSim: "Last simulated runs",
     dcRuns: "Dungeon Clear runs (detail)", parts: n => n + " dc on in a row", leader: "led by", noRealRun: "No real run since the server start.", noSim: "No simulated dungeon right now.", noBg: "No simulated battleground right now.",
@@ -65,6 +71,12 @@ const VIVANT_WORDS = {
     stale: t => "Pas de mise à jour depuis un moment : " + t + ". Le module n'écrit plus, ou le royaume est arrêté.",
     online: "Bots en ligne", players: "Joueurs", inCapitals: "En capitale", busy: "En donjon", stuck: "Coincés", zonesUsed: "Zones occupées", inBg: "En champ de bataille ou arène", pvpAll: n => n + " en JcJ au total",
     demoTab: "Chiffres factices : rien dans cet onglet ne vient encore du serveur.",
+    leveling: "Rattrapage d’XP", catchOn: "Rattrapage actif", catchOff: "Rattrapage coupé (AiPlayerbot.CoaFreshStart.CatchUp.Enable = 0) : les bots montent au rythme normal.",
+    frontIs: (lv, n) => "Front des joueurs : niveau " + lv + " (médiane de " + n + " joueurs actifs)", noFront: n => "Pas de front des joueurs : " + n + " joueurs actifs, trop peu pour en fixer un.",
+    surveyed: t => "compté il y a " + t + ", toutes les 10 minutes", byLevel: "Bots aléatoires par niveau (en ligne ou non)", pcts: (a, b, c) => "p10 " + a + " · p50 " + b + " · p90 " + c,
+    hourlyTitle: "Niveaux des bots et front des joueurs, heure par heure", front: "Front des joueurs", hourlyWait: "Un point par heure : la courbe commence après la deuxième heure.",
+    raid: "Raid de capitale", raidPhase: { gathering: "rassemblement", assault: "assaut" }, raidLine: (a, d) => a + " attaquants · " + d + " défenseurs",
+    king: n => "chef à " + n + " % de vie", stepOf: (a, b) => "étape " + a + "/" + b, assaultAt: "assaut",
     realNow: "Groupes réels en instance", simNow: "Donjons simulés", bgNow: "Champs de bataille et arènes", bgSimOff: "BG simulés : coupés.", bgSimTitle: "Simulés",
     noRealBg: "Personne en champ de bataille ou en arène en ce moment.", lastReal: "Derniers runs réels", lastSim: "Derniers runs simulés",
     dcRuns: "Runs Dungeon Clear (détail)", parts: n => n + " dc on à la suite", leader: "mené par", noRealRun: "Aucun run réel depuis le démarrage du serveur.", noSim: "Aucun donjon simulé en ce moment.", noBg: "Aucun champ de bataille simulé en ce moment.",
@@ -181,13 +193,14 @@ function vivantPopulation(body, w) {
     (ev.factions ? whoRow(w.alliance, ev.factions.alliance) + whoRow(w.horde, ev.factions.horde) : "") + whoRow(w.whoCols[3], ev.total) + "</tbody></table></div></section>";
   body.innerHTML = topicError(d) + vivantFigures(head.concat([
     h.stuck ? [w.stuck, num(h.stuck.length), ""] : [stuckLabel(w, (stuckDay() || {}).since), (stuckDay() || {}).count || "–", stuckDay() ? (stuckDay().journal ? w.fromEvents : "") : w.soon],
-    [w.inBg, num(bgCount), acts.pvp == null || ev ? "" : w.pvpAll(num(acts.pvp))]])) + everyoneCard +
+    [w.inBg, num(bgCount), acts.pvp == null || ev ? "" : w.pvpAll(num(acts.pvp))]])) + everyoneCard + levelingCard(w, d.leveling) +
     '<div class="grid two"><section class="card"><h2>' + esc(w.zones) + '</h2><div id="vvZones"></div></section>' +
     '<section class="card"><h2>' + esc(w.activities) + '</h2><div class="splits" id="vvActs"></div>' +
     '<h2 class="later">' + esc(w.capitals) + '</h2><div class="splits" id="vvCaps"></div>' +
     '<h2 class="later">' + esc(w.souls) + '</h2><div class="splits" id="vvSouls"></div>' +
     '<h2 class="later">' + esc(w.surnames) + '</h2><div id="vvSurname"></div></section></div>';
   const sides = z => { const f = z.faction || {}; return f.alliance == null && f.horde == null ? "" : w.alliance + " " + num(f.alliance || 0) + " · " + w.horde + " " + num(f.horde || 0); };
+  if (d.leveling && document.getElementById("vvHourly")) levelCharts(w, d.leveling);
   if (ev && ev.zones && ev.zones.length)
     rankedList(document.getElementById("vvZones"), ev.zones.map(z => ({ name: z.name || "#" + z.zone, n: all(z), capital: z.capital,
       who: w.split(num(z.players || 0), num(z.alts || 0), num(z.bots || 0)) })).sort((a, b) => b.n - a.n),
@@ -230,6 +243,43 @@ function stuckDay() {
 const stuckLabel = (w, since, other) => since && since > Date.now() / 1000 - DAY + 60 ?
   (other ? w.unstuckSince : w.stuckSince)(new Date(since * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : (other ? w.unstuck24 : w.stuck24);
 
+const cityName = key => String(key || "").replace(/(^|[_-])(\w)/g, (m, sep, c) => (sep ? " " : "") + c.toUpperCase());
+
+// XP catch-up (CoA SquidBot, world.json "leveling"): the players' front, the random bots by level, the hourly percentiles.
+function levelingCard(w, lv) {
+  if (!lv) return "";
+  const bots = lv.bots || [];
+  const pct = q => { const total = bots.reduce((a, b) => a + b, 0); let run = 0; for (let i = 0; i < bots.length; i++) { run += bots[i]; if (run >= total * q) return i + 1; } return 0; };
+  const top = Math.max(1, ...bots);
+  const bars = bots.map((n, i) => '<i title="' + esc((lang === "fr" ? "niveau " : "level ") + (i + 1) + " : " + num(n) + " bots") + '" style="height:' +
+    (n ? Math.max(4, Math.sqrt(n / top) * 100) : 0) + '%"></i>').join("");
+  return '<section class="card"><h2>' + esc(w.leveling) + '</h2><p class="meta"><strong>' + esc(lv.catchUp ? w.catchOn : w.catchOff) + "</strong>" +
+    (lv.catchUp ? " · " + esc(lv.front ? w.frontIs(lv.front, num(lv.humans || 0)) : w.noFront(num(lv.humans || 0))) : "") +
+    (lv.surveyedAt ? " · " + esc(w.surveyed(ago(lv.surveyedAt))) : "") + "</p>" +
+    '<p class="meta">' + esc(w.byLevel) + " · " + esc(w.pcts(pct(.1), pct(.5), pct(.9))) + '</p><div class="lvbars">' + bars + "</div>" +
+    '<div class="lvaxis"><span>1</span><span>' + bots.length + "</span></div>" +
+    '<h2 class="later">' + esc(w.hourlyTitle) + '</h2><div class="chart" id="vvHourly"></div></section>';
+}
+
+function levelCharts(w, lv) {
+  const host = document.getElementById("vvHourly"), pts = (lv.hourly || []).slice().sort((a, b) => a.at - b.at);
+  if (pts.length < 2) { host.innerHTML = '<p class="empty">' + esc(w.hourlyWait) + "</p>"; return; }
+  const W0 = 640, H0 = 180, L = 30, R = 8, T = 8, B = 22;
+  const lines = [["p90", "var(--gold-bright)"], ["p50", "var(--gold)"], ["p10", "#c96b3a"], ["front", "var(--accent)"]];
+  const vals = pts.flatMap(p => lines.map(l => p[l[0]]).filter(v => v));
+  const lo = Math.max(1, Math.min(...vals) - 2), hi = Math.max(...vals) + 1;
+  const x = i => L + (W0 - L - R) * i / (pts.length - 1), y = v => T + (H0 - T - B) * (1 - (v - lo) / Math.max(1, hi - lo));
+  const path = key => pts.map((p, i) => p[key] ? (i && pts[i - 1][key] ? "L" : "M") + x(i).toFixed(1) + " " + y(p[key]).toFixed(1) : "").join(" ");
+  const hh = t => new Date(t * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  host.innerHTML = '<svg viewBox="0 0 ' + W0 + " " + H0 + '" role="img" aria-label="' + esc(w.hourlyTitle) + '" style="width:100%;height:auto">' +
+    [lo, Math.round((lo + hi) / 2), hi].map(v => '<line x1="' + L + '" x2="' + (W0 - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--hairline)"/><text x="' + (L - 4) +
+      '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="10" fill="var(--text-muted)">' + v + "</text>").join("") +
+    lines.map(l => '<path d="' + path(l[0]) + '" fill="none" stroke="' + l[1] + '" stroke-width="2"' + (l[0] === "front" ? ' stroke-dasharray="5 4"' : "") + "/>").join("") +
+    '<text x="' + L + '" y="' + (H0 - 6) + '" font-size="10" fill="var(--text-muted)">' + hh(pts[0].at) + '</text><text x="' + (W0 - R) + '" y="' + (H0 - 6) +
+    '" text-anchor="end" font-size="10" fill="var(--text-muted)">' + hh(pts[pts.length - 1].at) + "</text></svg>" +
+    '<p class="meta">' + lines.map(l => '<span style="color:' + l[1] + '">■</span> ' + esc(l[0] === "front" ? w.front : l[0])).join(" &nbsp; ") + "</p>";
+}
+
 function vivantMonde(body, w) {
   const d = VIVANT.monde || {};
   const inv = d.invasions || [], rush = d.rushes || [], guilds = d.guilds || [], gorders = d.guild_orders || (VIVANT.world || {}).guild_orders || [];
@@ -254,16 +304,23 @@ function vivantMonde(body, w) {
     '<div class="meta">&lt;' + esc(o.guild) + "&gt;" + (o.by ? " · " + esc(w.servedBy) + " " + esc(o.by) : "") + "</div></td><td>" + esc(w.guildOrderState[o.state] || o.state) +
     '</td><td class="r meta">' + esc(ago(o.at)) + "</td></tr>").join("");
   const line = e => '<tr><td class="meta">' + esc(ago(e.at)) + "</td><td>" + (e.bot ? "<strong>" + esc(e.bot) + "</strong> " : "") + esc(e.text) + "</td></tr>";
+  const raid = d.capital_raid && d.capital_raid.running;
+  const raidRow = !raid ? "" : '<div class="zone-row"><div><strong>' + esc(w.raid) + " · " + esc(cityName(raid.city)) + " · " +
+    esc(raid.attackers === "horde" ? w.horde : w.alliance) + '</strong><div class="meta">' +
+    bits([w.raidPhase[raid.phase] || raid.phase, raid.steps ? w.stepOf(raid.step, raid.steps) : "", w.raidLine(num(raid.bots || 0), num(raid.defenders || 0)),
+      raid.phase === "assault" && raid.kingHealthPct != null ? w.king(raid.kingHealthPct) : "",
+      raid.phase === "gathering" && raid.assaultAt ? w.assaultAt + " " + clock(raid.assaultAt) : "", raid.endsAt ? w.ends + " " + clock(raid.endsAt) : ""]) +
+    "</div></div></div>";
   const lastFew = recentEvents(["invasion", "rush", "guild", "server_first"]).slice(0, 15).map(e => '<tr><td class="meta">' + esc(ago(e.at)) +
     '</td><td><span style="color:' + (KIND_COLORS[e.kind] || "var(--text-muted)") + '">' + esc(w.kind[e.kind] || e.kind) + "</span></td><td>" +
     (e.bot ? "<strong>" + esc(e.bot) + "</strong> " : "") + esc(e.text) + "</td></tr>").join("");
   const table = (head, rows, why) => rows ? '<div class="scroll"><table>' + (head ? "<thead><tr>" + head + "</tr></thead>" : "") + "<tbody>" + rows + "</tbody></table></div>"
     : '<p class="empty">' + esc(why) + "</p>";
-  body.innerHTML = topicError(d) + vivantFigures([[w.invasionsNow, num(inv.length), ""], [w.rushesNow, num(rush.length), ""], [w.guilds, num(guilds.length), ""],
+  body.innerHTML = topicError(d) + vivantFigures([[w.invasionsNow, num(inv.length), raid ? w.raid + " · " + (w.raidPhase[raid.phase] || raid.phase) : ""], [w.rushesNow, num(rush.length), ""], [w.guilds, num(guilds.length), ""],
     [w.guildOrders, num(gorders.length), w.sinceStart],
     [stuckLabel(w, rec.since), count(rec.stuck), rec.events ? w.fromEvents : rec.stuck_events != null ? w.detections(num(rec.stuck_events)) : ""],
     [stuckLabel(w, rec.since, true), count(rec.unstuck), rec.events ? w.fromEvents : rec.unstuck_events != null ? w.detections(num(rec.unstuck_events)) : ""]]) +
-    '<div class="grid two"><section class="card"><h2>' + esc(w.happening) + "</h2>" + (now || '<p class="empty">' + esc(w.nothingNow) + "</p>") + "</section>" +
+    '<div class="grid two"><section class="card"><h2>' + esc(w.happening) + "</h2>" + (raidRow + now || '<p class="empty">' + esc(w.nothingNow) + "</p>") + "</section>" +
     '<section class="card"><h2>' + esc(w.firsts) + "</h2>" + table("", firsts.slice(0, 12).map(line).join(""), w.noFirst) + "</section></div>" +
     '<div class="grid two"><section class="card"><h2>' + esc(w.guilds) + "</h2>" + table("<th></th><th class=\"r\">" + esc(w.members) + '</th><th class="r">' + esc(w.botsOnline) + '</th><th class="r">' +
       esc(w.onlineCol) + '</th><th class="r">' + esc(w.bank) + "</th>" + (queue ? '<th class="r">' + esc(w.openOrders) + "</th>" : ""), guildRows, w.noGuild) + "</section>" +

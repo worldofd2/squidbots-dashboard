@@ -902,3 +902,8 @@ dialog.armory-popup { width: min(1100px, calc(100vw - 32px)); max-width: none; m
 /* Server > Events: ".events li" (padding 7px 0) beat ".event"'s room for the dot, which sat on the date. */
 .events li.event { padding-left: 17px; align-items: center; }
 .events li.event::before { top: 50%; transform: translateY(-50%); }
+/* Living world: XP catch-up, random bots by level */
+.lvbars { display: flex; align-items: flex-end; gap: 1px; height: 90px; margin-top: 6px; border-bottom: 1px solid var(--hairline); }
+.lvbars i { flex: 1; min-width: 2px; background: var(--gold); border-radius: 2px 2px 0 0; opacity: .85; }
+.lvbars i:hover { opacity: 1; background: var(--gold-bright); }
+.lvaxis { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
